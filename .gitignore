@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Build / cache
+.next/
+dist/
+build/
+*.tsbuildinfo
+
+# Laravel
+backend/storage/*.key
+backend/storage/pail
+backend/bootstrap/cache/*.php
+!backend/bootstrap/cache/.gitignore
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# v0 sandbox (legacy)
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Docker volumes (local)
+docker-data/
+/frontend/.pnpm-store

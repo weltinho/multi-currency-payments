@@ -1,0 +1,20 @@
+# Git
+.git
+.gitignore
+
+# Frontend — deps and build output are installed/copied in the Docker image
+frontend/node_modules
+frontend/.next
+frontend/tsconfig.tsbuildinfo
+
+# Backend — Composer runs in the PHP container entrypoint
+backend/vendor
+backend/.env
+
+# IDE / OS
+.idea
+.vscode
+.DS_Store
+
+# Docker local data
+docker-data

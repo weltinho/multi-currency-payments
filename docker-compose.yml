@@ -1,0 +1,170 @@
+# Multi-Currency Payments — Docker Compose stack
+#
+# Project name: multi-currency (container names match service names exactly)
+# Internal DNS: webserver, frontend, backend, database, redis, scheduler
+#
+# Startup order (depends_on):
+#   database, redis → backend → frontend (build + HTTP ready) → webserver
+#   scheduler runs in parallel after backend
+#
+# Quick start:
+#   docker compose down --remove-orphans -v
+#   docker compose up -d --build
+#   docker compose exec backend php artisan key:generate
+#   docker compose exec backend php artisan migrate --seed
+
+name: multi-currency
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # webserver — Nginx reverse proxy (only service exposed to the host)
+  # ---------------------------------------------------------------------------
+  webserver:
+    container_name: webserver
+    image: nginx:1.27-alpine
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    networks:
+      - app
+
+  # ---------------------------------------------------------------------------
+  # frontend — Next.js dev server with hot reload
+  # ---------------------------------------------------------------------------
+  frontend:
+    container_name: frontend
+    image: multi-currency/frontend
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - frontend_next:/app/.next
+    command: ["/usr/local/bin/start.sh"]
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 180s
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_started
+    networks:
+      - app
+
+  # ---------------------------------------------------------------------------
+  # backend — Laravel 12 via PHP-FPM (listens on :9000 internally)
+  # ---------------------------------------------------------------------------
+  backend:
+    container_name: backend
+    image: multi-currency/backend
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    working_dir: /var/www/html
+    volumes:
+      - ./backend:/var/www/html
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: database
+      REDIS_HOST: redis
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - app
+
+  # ---------------------------------------------------------------------------
+  # scheduler — runs `php artisan schedule:work` (48h payment expiration)
+  # ---------------------------------------------------------------------------
+  scheduler:
+    container_name: scheduler
+    image: multi-currency/scheduler
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    working_dir: /var/www/html
+    volumes:
+      - ./backend:/var/www/html
+    command: php artisan schedule:work
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: database
+      REDIS_HOST: redis
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_started
+    networks:
+      - app
+
+  # ---------------------------------------------------------------------------
+  # database — MySQL 8
+  # ---------------------------------------------------------------------------
+  database:
+    container_name: database
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-payments}
+      MYSQL_USER: ${MYSQL_USER:-payments}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    volumes:
+      - database_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app
+
+  # ---------------------------------------------------------------------------
+  # redis — cache, session store, and queue backend
+  # ---------------------------------------------------------------------------
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - app
+
+volumes:
+  database_data:
+  redis_data:
+  frontend_next:
+
+networks:
+  app:
+    driver: bridge
