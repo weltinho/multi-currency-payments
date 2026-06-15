@@ -148,7 +148,7 @@ export function PaymentDetailDialog({
               <MetaBlock
                 icon={<Clock className="size-4" />}
                 label={t("detail.captureTimestamp")}
-                value={formatDateTime(payment.created_at, locale)}
+                value={formatDateTime(payment.rate_fetched_at, locale)}
               />
               <MetaBlock
                 icon={<Clock className="size-4" />}

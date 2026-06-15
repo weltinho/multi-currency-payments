@@ -59,7 +59,8 @@ class PaymentCreateTest extends TestCase
             ->assertJsonPath('exchange_rate', 6.21)
             ->assertJsonPath('eur_amount', 676.33)
             ->assertJsonPath('user_id', $employee->id)
-            ->assertJsonPath('user_name', 'Rafael Souza');
+            ->assertJsonPath('user_name', 'Rafael Souza')
+            ->assertJsonStructure(['rate_fetched_at']);
 
         $this->assertDatabaseHas('payment_requests', [
             'user_id' => $employee->id,

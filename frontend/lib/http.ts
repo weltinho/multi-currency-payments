@@ -55,8 +55,8 @@ let csrfRequested = false
 /** Fetch the CSRF cookie exactly once per session before the first mutation. */
 export async function ensureCsrfCookie(): Promise<void> {
   if (csrfRequested) return
-  await fetch("/sanctum/csrf-cookie", { credentials: "include" })
-  csrfRequested = true
+  const res = await fetch("/sanctum/csrf-cookie", { credentials: "include" })
+  if (res.ok) csrfRequested = true
 }
 
 type ApiFetchOptions = Omit<RequestInit, "body"> & { body?: unknown }

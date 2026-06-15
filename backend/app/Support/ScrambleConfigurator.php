@@ -75,7 +75,7 @@ final class ScrambleConfigurator
         |-------|-----|--------------|
         | **Public** | Everyone | CSRF cookie, health, login, demo test-users |
         | **Auth** | Logged-in users | Session user, logout, password change |
-        | **Finance** | `finance@buzzvel.com` | List/approve/reject payments, register employees |
+        | **Finance** | `finance@buzzvel.com` | Registration (`POST /employees`), list/approve/reject payments |
         | **Employee** | e.g. `rafael@buzzvel.com` | Create and track own payment requests |
 
         MD;

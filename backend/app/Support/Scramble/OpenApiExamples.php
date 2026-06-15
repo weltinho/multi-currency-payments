@@ -114,6 +114,7 @@ final class OpenApiExamples
             'updated_at' => '2026-06-15T08:00:00+00:00',
             'reviewed_at' => null,
             'rate_source' => 'exchangerate-api.com',
+            'rate_fetched_at' => '2026-06-15T08:00:00+00:00',
             'description' => 'Equipment reimbursement — monitor and peripherals',
         ];
     }

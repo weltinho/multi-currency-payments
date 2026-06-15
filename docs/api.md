@@ -119,6 +119,53 @@ POST /api/logout
 
 ---
 
+### Registration (Buzzvel brief — corporate onboarding)
+
+The brief lists **Registration, Login, Logout**. There is no public `POST /register`. In this project, **registration means finance provisioning a new employee account** — a realistic corporate flow for a reimbursement portal.
+
+```
+POST /api/employees
+```
+
+**Authorization:** Finance only (`auth:sanctum` + password changed).
+
+**Request body:**
+
+```json
+{
+  "name": "Jordan Lee",
+  "email": "jordan.lee@buzzvel.com",
+  "country_code": "US"
+}
+```
+
+**Response `201`:** New employee user (same shape as `GET /api/user`) with `must_change_password: true`. Initial password is the employee's **first name**; they must call `PUT /api/password` before accessing payments.
+
+**Response `403`:**
+
+```json
+{
+  "message": "Only the finance team can manage employee accounts."
+}
+```
+
+**Response `422`:**
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "email": ["An account with this email already exists."]
+  }
+}
+```
+
+**Demo flow:** Finance → **Register employee** in the UI → employee logs in → forced password change → submit payment.
+
+See also [Employees (finance only)](#employees-finance-only) below for list/country endpoints.
+
+---
+
 ## Demo test users (demo only)
 
 ```
@@ -177,6 +224,14 @@ GET /api/employees
 }
 ```
 
+**Response `403`:**
+
+```json
+{
+  "message": "Only the finance team can manage employee accounts."
+}
+```
+
 ---
 
 ### Create employee
@@ -207,6 +262,17 @@ POST /api/employees
   "country_code": "US",
   "currency": "USD",
   "must_change_password": true
+}
+```
+
+**Response `422`:**
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "email": ["An account with this email already exists."]
+  }
 }
 ```
 
@@ -272,6 +338,7 @@ GET /api/payments
       "updated_at": "2026-06-15T08:00:00+00:00",
       "reviewed_at": null,
       "rate_source": "exchangerate-api.com",
+      "rate_fetched_at": "2026-06-15T08:00:00+00:00",
       "description": "Equipment reimbursement — monitor and peripherals"
     }
   ],
@@ -353,11 +420,37 @@ POST /api/payments
   "updated_at": "2026-06-15T08:00:00+00:00",
   "reviewed_at": null,
   "rate_source": "exchangerate-api.com",
+  "rate_fetched_at": "2026-06-15T08:00:00+00:00",
   "description": "Equipment reimbursement — monitor and peripherals"
 }
 ```
 
-**Response `422`:** Validation errors.
+**Response `422`:**
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "local_amount": ["The local amount must be greater than 0."]
+  }
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "You are not allowed to perform this action."
+}
+```
+
+**Response `503`:** Exchange rate provider unavailable.
+
+```json
+{
+  "message": "Exchange rate is temporarily unavailable. Please try again later."
+}
+```
 
 ---
 
@@ -385,13 +478,26 @@ GET /api/payments/{id}
   "updated_at": "2026-06-15T08:00:00+00:00",
   "reviewed_at": null,
   "rate_source": "exchangerate-api.com",
+  "rate_fetched_at": "2026-06-15T08:00:00+00:00",
   "description": "Equipment reimbursement — monitor and peripherals"
 }
 ```
 
-**Response `403`:** Employee accessing another user's payment.
+**Response `403`:**
 
-**Response `404`:** Payment not found.
+```json
+{
+  "message": "You are not allowed to perform this action."
+}
+```
+
+**Response `404`:**
+
+```json
+{
+  "message": "Payment not found."
+}
+```
 
 ---
 
@@ -431,11 +537,45 @@ Allowed values: `approved`, `rejected`.
   "updated_at": "2026-06-15T12:00:00+00:00",
   "reviewed_at": "2026-06-15T12:00:00+00:00",
   "rate_source": "exchangerate-api.com",
+  "rate_fetched_at": "2026-06-15T08:00:00+00:00",
   "description": "Equipment reimbursement — monitor and peripherals"
 }
 ```
 
-**Response `409`:** Payment is not in `pending` status.
+**Response `409`:**
+
+```json
+{
+  "message": "Only pending payments can be approved or rejected."
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "You are not allowed to perform this action."
+}
+```
+
+**Response `404`:**
+
+```json
+{
+  "message": "Payment not found."
+}
+```
+
+**Response `422`:**
+
+```json
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "status": ["The status field is required."]
+  }
+}
+```
 
 ---
 

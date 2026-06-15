@@ -115,6 +115,26 @@ Configuration: `config/payments.php` / `PAYMENT_PENDING_EXPIRATION_HOURS` in `ba
 
 This only starts Docker — bootstrap still runs inside the `backend` entrypoint.
 
+## Authentication & registration (Buzzvel brief)
+
+The brief requires **Registration, Login, and Logout**. This project uses **Laravel Sanctum** (session cookies), not Passport — allowed by the brief (“or another preferred mechanism”).
+
+| Brief requirement | Implementation |
+|-------------------|----------------|
+| **Login** | `POST /api/login` |
+| **Logout** | `POST /api/logout` |
+| **Registration** | `POST /api/employees` (**finance only**) — corporate HR provisions employee accounts; there is no public self-signup |
+
+New employees get `must_change_password: true` and must call `PUT /api/password` on first login (initial password = first name). Seeded demo users use `123456` for easy review.
+
+**Recommended demo flow for reviewers:** finance registers an employee → employee logs in → password change → submit payment → finance approves.
+
+More detail: [backend/REVIEWER_NOTES.md](backend/REVIEWER_NOTES.md) and [docs/api.md](docs/api.md#registration-buzzvel-brief--corporate-onboarding).
+
+## Demo video
+
+Add your public demo URL to [docs/demo.md](docs/demo.md) before submitting the ClickUp form.
+
 ## Seed credentials
 
 Password for **all** seeded users: `123456`
@@ -188,6 +208,7 @@ Reviewer-focused backend notes: [backend/REVIEWER_NOTES.md](backend/REVIEWER_NOT
 - **Interactive (Scramble):** http://localhost:8080/docs/api
 - **Static reference:** [docs/api.md](docs/api.md)
 - **Architecture:** [docs/architecture.md](docs/architecture.md)
+- **Demo video:** [docs/demo.md](docs/demo.md)
 
 ## Useful commands
 

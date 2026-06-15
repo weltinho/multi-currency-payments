@@ -50,6 +50,9 @@ class PaymentController extends Controller
 
     #[Group('Employee', description: 'Employees submit reimbursements in profile currency (or override).', weight: 40)]
     #[Response(201, type: PaymentResponse::class)]
+    #[Response(403, examples: [['message' => 'You are not allowed to perform this action.']])]
+    #[Response(422, examples: [['message' => 'The given data was invalid.', 'errors' => ['local_amount' => ['The local amount must be greater than 0.']]]])]
+    #[Response(503, examples: [['message' => 'Exchange rate is temporarily unavailable. Please try again later.']])]
     public function store(StorePaymentRequest $request): JsonResponse
     {
         try {
@@ -66,6 +69,8 @@ class PaymentController extends Controller
 
     #[Group('Employee', description: 'Payment detail for the employee history modal.', weight: 40)]
     #[Response(200, type: PaymentResponse::class)]
+    #[Response(403, examples: [['message' => 'You are not allowed to perform this action.']])]
+    #[Response(404, examples: [['message' => 'Payment not found.']])]
     public function show(Request $request, string $id): JsonResponse
     {
         try {
@@ -79,6 +84,10 @@ class PaymentController extends Controller
 
     #[Group('Finance', weight: 30)]
     #[Response(200, type: PaymentResponse::class)]
+    #[Response(403, examples: [['message' => 'You are not allowed to perform this action.']])]
+    #[Response(404, examples: [['message' => 'Payment not found.']])]
+    #[Response(409, examples: [['message' => 'Only pending payments can be approved or rejected.']])]
+    #[Response(422, examples: [['message' => 'The given data was invalid.', 'errors' => ['status' => ['The status field is required.']]]])]
     public function decide(Request $request, string $id): JsonResponse
     {
         $validated = $request->validate([

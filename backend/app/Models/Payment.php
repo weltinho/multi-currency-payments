@@ -81,6 +81,7 @@ class Payment extends Model
             'updated_at' => $this->updated_at->toIso8601String(),
             'reviewed_at' => $this->reviewed_at?->toIso8601String(),
             'rate_source' => $this->rate_source,
+            'rate_fetched_at' => $this->rate_fetched_at->toIso8601String(),
             'description' => $this->description,
         ];
     }

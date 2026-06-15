@@ -22,7 +22,7 @@ use Illuminate\Http\Request;
  * GET  /employees  — list for finance dashboard / collaborator filter
  * GET  /employee-countries — allowed country/currency profiles for the form
  */
-#[Group('Finance', description: 'Finance-only — register employees and list collaborators.', weight: 30)]
+#[Group('Finance', description: 'Registration — finance provisions employee accounts (POST /employees). Lists collaborators for filters.', weight: 30)]
 class EmployeeController extends Controller
 {
     public function __construct(
@@ -31,6 +31,7 @@ class EmployeeController extends Controller
     ) {}
 
     #[Response(200, type: EmployeeListResponse::class)]
+    #[Response(403, examples: [['message' => 'Only the finance team can manage employee accounts.']])]
     public function index(Request $request): JsonResponse
     {
         try {
@@ -43,6 +44,8 @@ class EmployeeController extends Controller
     }
 
     #[Response(201, type: UserResponse::class)]
+    #[Response(403, examples: [['message' => 'Only the finance team can manage employee accounts.']])]
+    #[Response(422, examples: [['message' => 'The given data was invalid.', 'errors' => ['email' => ['An account with this email already exists.']]]])]
     public function store(StoreEmployeeRequest $request): JsonResponse
     {
         try {

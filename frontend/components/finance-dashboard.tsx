@@ -31,10 +31,13 @@ import { useLanguage } from "@/components/language-provider"
 import { cn } from "@/lib/utils"
 import { STATUS_META, formatCurrency, formatDateTime } from "@/lib/data"
 import { decidePayment, fetchEmployees, fetchPayments, fetchPaymentSummary } from "@/lib/api"
+import { ApiError } from "@/lib/http"
 import { RegisterEmployeeDialog } from "@/components/register-employee-dialog"
+import { EmptyState } from "@/components/empty-state"
+import { InlineAlert } from "@/components/inline-alert"
 import type { PaymentQuery, PaymentRequest, PaymentStatus, User } from "@/lib/types"
 import type { TranslationKey } from "@/lib/i18n"
-import { Check, Loader2, Search, X } from "lucide-react"
+import { Check, Inbox, Loader2, Search, X } from "lucide-react"
 
 type FilterValue = "all" | PaymentStatus
 
@@ -97,6 +100,10 @@ export function FinanceDashboard() {
     decision: PaymentDecision
   } | null>(null)
   const blurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [decisionNotice, setDecisionNotice] = useState<{
+    variant: "success" | "error"
+    message: string
+  } | null>(null)
 
   // GET /api/payments?page=&per_page=&status=&collaborator=
   const listQuery: PaymentQuery = {
@@ -181,9 +188,27 @@ export function FinanceDashboard() {
   }
 
   async function confirmDecision(id: number, status: PaymentDecision) {
-    await decidePayment(id, status)
-    await Promise.all([mutateList(), mutateSummary()])
-    setDecisionContext(null)
+    try {
+      await decidePayment(id, status)
+      await Promise.all([mutateList(), mutateSummary()])
+      setDecisionContext(null)
+      setDecisionNotice({
+        variant: "success",
+        message:
+          status === "approved"
+            ? t("finance.decisionSuccessApprove")
+            : t("finance.decisionSuccessReject"),
+      })
+    } catch (err) {
+      setDecisionContext(null)
+      setDecisionNotice({
+        variant: "error",
+        message:
+          err instanceof ApiError && err.message
+            ? err.message
+            : t("finance.decisionError"),
+      })
+    }
   }
 
   // Abre o modal com os detalhes completos do pedido clicado.
@@ -210,18 +235,26 @@ export function FinanceDashboard() {
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <StatCard
           label={t("finance.totalRequests")}
-          value={summary ? String(summary.total) : "—"}
+          value={summary ? String(summary.total) : listLoading ? "…" : "—"}
         />
         <StatCard
           label={t("finance.pending")}
-          value={summary ? String(summary.pending) : "—"}
+          value={summary ? String(summary.pending) : listLoading ? "…" : "—"}
         />
         <StatCard
           label={t("finance.approvedEur")}
-          value={summary ? formatCurrency(summary.approved_eur, "EUR") : "—"}
+          value={summary ? formatCurrency(summary.approved_eur, "EUR") : listLoading ? "…" : "—"}
           highlight
         />
       </div>
+
+      {decisionNotice && (
+        <InlineAlert
+          variant={decisionNotice.variant}
+          message={decisionNotice.message}
+          className="mb-4"
+        />
+      )}
 
       <Card className="border-border">
         <CardHeader className="gap-4">
@@ -344,9 +377,11 @@ export function FinanceDashboard() {
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
           {isEmpty ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              {t("finance.noRequests")}
-            </p>
+            <EmptyState
+              icon={Inbox}
+              title={t("finance.noRequests")}
+              description={t("finance.noRequestsDesc")}
+            />
           ) : (
             <>
               <div className={cn(busy && "opacity-60 transition-opacity")}>

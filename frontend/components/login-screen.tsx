@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { LanguageToggle, ThemeToggle } from "@/components/app-controls"
 import { useLanguage } from "@/components/language-provider"
 import { login } from "@/lib/auth"
+import { ensureCsrfCookie } from "@/lib/http"
 import type { User } from "@/lib/types"
 import { LoginTestInstructionsDialog } from "@/components/login-test-instructions-dialog"
 import { Building2, Loader2 } from "lucide-react"
@@ -18,6 +19,10 @@ export function LoginScreen({ onLogin }: { onLogin: (user: User, password: strin
   const [password, setPassword] = useState("")
   const [error, setError] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    void ensureCsrfCookie()
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

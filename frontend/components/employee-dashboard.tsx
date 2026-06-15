@@ -34,7 +34,9 @@ import {
 import { createPayment, fetchPayments } from "@/lib/api"
 import { ApiError } from "@/lib/http"
 import type { CurrencyCode, PaymentRequest, User } from "@/lib/types"
-import { ArrowRight, Loader2, Plus } from "lucide-react"
+import { ArrowRight, Inbox, Loader2, Plus } from "lucide-react"
+import { EmptyState } from "@/components/empty-state"
+import { InlineAlert } from "@/components/inline-alert"
 
 const PER_PAGE = 6
 
@@ -51,6 +53,7 @@ export function EmployeeDashboard({ user }: { user: User }) {
   const [page, setPage] = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null)
 
   const listKey = ["my-payments", user.id, page] as const
 
@@ -86,6 +89,7 @@ export function EmployeeDashboard({ user }: { user: User }) {
 
     setSubmitting(true)
     setSubmitError(null)
+    setSubmitSuccess(null)
 
     try {
       await createPayment({
@@ -97,6 +101,7 @@ export function EmployeeDashboard({ user }: { user: User }) {
       setDescription("")
       setPaymentCurrency(user.currency)
       setPage(1)
+      setSubmitSuccess(t("employee.submitSuccess"))
       await mutate((key: unknown) => Array.isArray(key) && key[0] === "my-payments")
     } catch (err) {
       setSubmitError(
@@ -186,8 +191,12 @@ export function EmployeeDashboard({ user }: { user: User }) {
                 </p>
               </div>
 
+              {submitSuccess && (
+                <InlineAlert variant="success" message={submitSuccess} />
+              )}
+
               {submitError && (
-                <p className="text-sm text-destructive">{submitError}</p>
+                <InlineAlert variant="error" message={submitError} />
               )}
 
               <Button
@@ -223,9 +232,11 @@ export function EmployeeDashboard({ user }: { user: User }) {
           </CardHeader>
           <CardContent className="px-0 sm:px-6">
             {isEmpty ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                {t("employee.noRequests")}
-              </p>
+              <EmptyState
+                icon={Inbox}
+                title={t("employee.noRequests")}
+                description={t("employee.noRequestsDesc")}
+              />
             ) : (
               <>
                 <div className={busy ? "opacity-60 transition-opacity" : undefined}>

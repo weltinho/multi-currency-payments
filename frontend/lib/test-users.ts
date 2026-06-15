@@ -1,4 +1,4 @@
-import { apiFetch } from "./http"
+import { apiFetch, ensureCsrfCookie } from "./http"
 
 export interface TestUserAccount {
   name: string
@@ -12,6 +12,7 @@ export interface TestUsersResponse {
   employees: TestUserAccount[]
 }
 
-export function fetchTestUsers(): Promise<TestUsersResponse> {
+export async function fetchTestUsers(): Promise<TestUsersResponse> {
+  await ensureCsrfCookie()
   return apiFetch<TestUsersResponse>("/test-users")
 }

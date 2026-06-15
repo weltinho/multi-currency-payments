@@ -367,11 +367,12 @@ final class OpenApiSchemaRegistrar implements DocumentTransformer
             ->addProperty('updated_at', self::str('2026-06-15T08:00:00+00:00'))
             ->addProperty('reviewed_at', (new StringType)->nullable(true))
             ->addProperty('rate_source', self::str('exchangerate-api.com'))
+            ->addProperty('rate_fetched_at', self::str('2026-06-15T08:00:00+00:00', 'When the EUR → local rate snapshot was taken (may be slightly before created_at when Redis cache is reused)'))
             ->addProperty('description', self::str('Equipment reimbursement — monitor and peripherals'))
             ->setRequired([
                 'id', 'reference', 'user_id', 'user_name', 'country', 'currency',
                 'local_amount', 'exchange_rate', 'eur_amount', 'status',
-                'created_at', 'updated_at', 'rate_source', 'description',
+                'created_at', 'updated_at', 'rate_source', 'rate_fetched_at', 'description',
             ]);
 
         return self::schema($type, 'Payment request resource', OpenApiExamples::paymentPending());

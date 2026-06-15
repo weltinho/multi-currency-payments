@@ -50,6 +50,7 @@ export interface PaymentRequest {
   updated_at: string
   reviewed_at: string | null
   rate_source: string
+  rate_fetched_at: string
   description: string
 }
 
