@@ -6,6 +6,10 @@ use App\Contracts\TestUser\TestUserServiceContract;
 use App\Enums\UserRole;
 use App\Models\User;
 
+/**
+ * Feeds the login-screen "test instructions" modal. Reads live from the DB so
+ * finance-created employees show up too, not just the seeded list.
+ */
 class TestUserService implements TestUserServiceContract
 {
     public function listGroupedByRole(): array

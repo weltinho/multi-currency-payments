@@ -19,6 +19,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('db:ensure-seeded', function () {
+    // Docker entrypoint calls this after migrate. Idempotent — won't re-seed if
+    // someone already registered employees or we ran seed manually.
     if (User::query()->count() > 0) {
         $this->info('Database already has users — skipping seed.');
 

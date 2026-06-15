@@ -4,31 +4,18 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "==> Setting up Multi-Currency Payments"
-
-if [ ! -f .env ]; then
-  cp .env.example .env
-  echo "Created .env from .env.example"
-fi
-
-if [ ! -f backend/.env ]; then
-  cp backend/.env.example backend/.env
-  echo "Created backend/.env from backend/.env.example"
-fi
-
-echo "==> Starting Docker services..."
+echo "==> Multi-Currency Payments — Docker setup"
+echo "    (.env files are committed; no copy step needed)"
+echo ""
+echo "==> Starting services (bootstrap runs in the backend entrypoint)..."
 docker compose up -d --build
 
-echo "==> Waiting for MySQL..."
-sleep 10
-
-echo "==> Bootstrapping Laravel..."
-docker compose exec backend php artisan key:generate --force
-docker compose exec backend php artisan migrate --seed
-
 echo ""
-echo "Setup complete!"
+echo "Setup started. First boot may take a few minutes."
+echo "  Status:   docker compose ps"
+echo "  Logs:     docker compose logs -f frontend"
 echo "  App:      http://localhost:8080"
 echo "  API docs: http://localhost:8080/docs/api"
 echo ""
-echo "Login: finance@buzzvel.com / password"
+echo "Login: finance@buzzvel.com / 123456"
+echo "       (open Test instructions on the login screen for more accounts)"

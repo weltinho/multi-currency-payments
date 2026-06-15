@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
@@ -17,6 +14,8 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            // True when finance just created the account — employee must call PUT /api/password.
+            $table->boolean('must_change_password')->default(false);
             $table->enum('role', ['employee', 'finance'])->default('employee')->index();
             $table->string('country');
             $table->char('country_code', 2);

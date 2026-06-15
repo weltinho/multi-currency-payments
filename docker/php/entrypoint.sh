@@ -34,6 +34,24 @@ wait_for_vendor() {
   echo "Composer dependencies ready."
 }
 
+wait_for_database() {
+  echo "Waiting for database connection..."
+  attempts=0
+  while [ $attempts -lt 60 ]; do
+    # db:show only checks connectivity — migrate:status fails on a fresh DB
+    # because the migrations table does not exist yet.
+    if php artisan db:show >/dev/null 2>&1; then
+      echo "Database connection ready."
+      return 0
+    fi
+    attempts=$((attempts + 1))
+    echo "Database not ready (attempt $attempts/60)..."
+    sleep 2
+  done
+  echo "Timed out waiting for database after 2 minutes."
+  exit 1
+}
+
 composer_install() {
   if [ -f "$VENDOR_READY" ]; then
     echo "Composer dependencies already installed."
@@ -73,6 +91,8 @@ if [ "${APP_BOOTSTRAP:-false}" = "true" ]; then
   if [ -f .env ] && grep -q "APP_KEY=$" .env 2>/dev/null; then
     php artisan key:generate --force
   fi
+
+  wait_for_database
 
   echo "Running migrations..."
   php artisan migrate --force

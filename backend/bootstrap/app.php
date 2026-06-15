@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\SetLocaleFromRequest;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // API messages follow the UI language sent by the frontend.
         $middleware->api(prepend: [
             SetLocaleFromRequest::class,
+        ]);
+        $middleware->alias([
+            // Gate for employees who still need to change their initial password.
+            'password.changed' => EnsurePasswordIsChanged::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

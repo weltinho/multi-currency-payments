@@ -49,11 +49,13 @@ class EmployeeService implements EmployeeServiceContract
             ]);
         }
 
-        // country + currency derived server-side from country_code — client cannot mismatch them.
+        // Initial password is the employee's full name; they must change it on first login.
+        // PasswordPolicy only applies to the *new* password, not this temporary one.
         $employee = User::query()->create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => $data['password'],
+            'password' => $data['name'],
+            'must_change_password' => true,
             'role' => UserRole::Employee,
             'country' => $profile['country'],
             'country_code' => $profile['country_code'],

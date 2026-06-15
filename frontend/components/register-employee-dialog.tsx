@@ -33,7 +33,6 @@ export function RegisterEmployeeDialog({ onCreated }: RegisterEmployeeDialogProp
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [countryCode, setCountryCode] = useState("BR")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +41,6 @@ export function RegisterEmployeeDialog({ onCreated }: RegisterEmployeeDialogProp
   function resetForm() {
     setName("")
     setEmail("")
-    setPassword("")
     setCountryCode("BR")
     setError(null)
     setSuccess(null)
@@ -61,19 +59,25 @@ export function RegisterEmployeeDialog({ onCreated }: RegisterEmployeeDialogProp
     setError(null)
     setSuccess(null)
 
+    const trimmedName = name.trim()
+
     try {
       const created = await registerEmployee({
-        name: name.trim(),
+        name: trimmedName,
         email: email.trim(),
-        password,
         country_code: countryCode,
       })
-      setSuccess(t("finance.registerSuccess", { name: created.name }))
+      setSuccess(
+        t("finance.registerSuccess", {
+          name: created.name,
+          password: trimmedName,
+        }),
+      )
       onCreated?.()
       setTimeout(() => {
         setOpen(false)
         resetForm()
-      }, 1200)
+      }, 2200)
     } catch (err) {
       if (err instanceof ApiError && err.status === 422) {
         const body = err.body as { errors?: Record<string, string[]>; message?: string }
@@ -92,7 +96,6 @@ export function RegisterEmployeeDialog({ onCreated }: RegisterEmployeeDialogProp
   const canSubmit =
     name.trim().length > 0 &&
     email.trim().length > 0 &&
-    password.length >= 6 &&
     countryCode.length === 2
 
   return (
@@ -135,18 +138,9 @@ export function RegisterEmployeeDialog({ onCreated }: RegisterEmployeeDialogProp
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="employee-password">{t("finance.employeePassword")}</Label>
-            <Input
-              id="employee-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={6}
-              required
-            />
-            <p className="text-xs text-muted-foreground">{t("finance.employeePasswordHint")}</p>
-          </div>
+          <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            {t("finance.employeeInitialPasswordHint")}
+          </p>
 
           <div className="space-y-2">
             <Label htmlFor="employee-country">{t("finance.employeeCountry")}</Label>

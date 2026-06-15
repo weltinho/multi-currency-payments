@@ -29,10 +29,15 @@ Route::get('/test-users', [TestUserController::class, 'index']);
 
 Route::post('/login', [AuthController::class, 'login']);
 
+// Logged in, but password change is still allowed before the employee picks a new password.
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::put('/password', [AuthController::class, 'updatePassword']);
+});
 
+// Everything else requires a "real" password (not the initial full-name one).
+Route::middleware(['auth:sanctum', 'password.changed'])->group(function () {
     Route::get('/employee-countries', [EmployeeController::class, 'countries']);
     Route::get('/employees', [EmployeeController::class, 'index']);
     Route::post('/employees', [EmployeeController::class, 'store']);

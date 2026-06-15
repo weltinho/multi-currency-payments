@@ -30,6 +30,7 @@ import {
   formatDate,
 } from "@/lib/data"
 import { createPayment, fetchPayments } from "@/lib/api"
+import { ApiError } from "@/lib/http"
 import type { PaymentRequest, User } from "@/lib/types"
 import { ArrowRight, Loader2, Plus } from "lucide-react"
 
@@ -88,8 +89,12 @@ export function EmployeeDashboard({ user }: { user: User }) {
       setDescription("")
       setPage(1)
       await mutate((key) => Array.isArray(key) && key[0] === "my-payments")
-    } catch {
-      setSubmitError(t("employee.submitError"))
+    } catch (err) {
+      setSubmitError(
+        err instanceof ApiError && err.message
+          ? err.message
+          : t("employee.submitError"),
+      )
     } finally {
       setSubmitting(false)
     }

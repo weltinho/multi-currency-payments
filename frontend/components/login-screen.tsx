@@ -12,10 +12,10 @@ import type { User } from "@/lib/types"
 import { LoginTestInstructionsDialog } from "@/components/login-test-instructions-dialog"
 import { Building2, Loader2 } from "lucide-react"
 
-export function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
+export function LoginScreen({ onLogin }: { onLogin: (user: User, password: string) => void }) {
   const { t } = useLanguage()
-  const [email, setEmail] = useState("finance@buzzvel.com")
-  const [password, setPassword] = useState("123456")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [error, setError] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -27,7 +27,7 @@ export function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
       // Sanctum cookie login (mock-resolved in the preview); finance and
       // employees are routed to different dashboards by their role.
       const user = await login(email, password)
-      onLogin(user)
+      onLogin(user, password)
     } catch {
       setError(true)
     } finally {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Contracts\Auth\AuthServiceContract;
 use App\Contracts\Translation\TranslatorContract;
+use App\Http\Requests\ChangePasswordRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -37,6 +38,20 @@ class AuthController extends Controller
     public function user(Request $request): JsonResponse
     {
         return response()->json($this->auth->currentUser($request->user()));
+    }
+
+    public function updatePassword(ChangePasswordRequest $request): JsonResponse
+    {
+        // Returns the updated user payload (must_change_password should now be false).
+        $validated = $request->validated();
+
+        return response()->json(
+            $this->auth->changePassword(
+                $request->user(),
+                $validated['current_password'],
+                $validated['password'],
+            ),
+        );
     }
 
     public function logout(Request $request): JsonResponse

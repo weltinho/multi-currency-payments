@@ -8,10 +8,8 @@
 #   scheduler waits for vendor/ via entrypoint, then runs schedule:work
 #
 # Quick start:
-#   docker compose down --remove-orphans -v
 #   docker compose up -d --build
-#   docker compose exec backend php artisan key:generate
-#   docker compose exec backend php artisan migrate --seed
+#   open http://localhost:8080
 
 name: multi-currency
 
@@ -146,7 +144,8 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 12
+      start_period: 30s
     networks:
       - app
 

@@ -12,6 +12,9 @@ use Illuminate\Notifications\Notifiable;
 /**
  * Authenticated user. role drives authorization across payments and employee management.
  * country/currency on the profile define the employee's reimbursement currency.
+ *
+ * must_change_password is set when finance creates the account; the SPA shows a
+ * forced password screen until they call PUT /api/password.
  */
 class User extends Authenticatable
 {
@@ -22,6 +25,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'must_change_password',
         'role',
         'country',
         'country_code',
@@ -38,6 +42,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
             'role' => UserRole::class,
         ];
     }
@@ -68,6 +73,7 @@ class User extends Authenticatable
             'country' => $this->country,
             'country_code' => $this->country_code,
             'currency' => $this->currency,
+            'must_change_password' => $this->must_change_password,
         ];
     }
 }

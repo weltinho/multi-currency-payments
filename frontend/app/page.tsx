@@ -2,34 +2,56 @@
 
 import { useState } from "react"
 import { AppHeader } from "@/components/app-header"
+import { ChangePasswordScreen } from "@/components/change-password-screen"
 import { EmployeeDashboard } from "@/components/employee-dashboard"
 import { FinanceDashboard } from "@/components/finance-dashboard"
 import { LoginScreen } from "@/components/login-screen"
 import { logout } from "@/lib/auth"
 import type { User } from "@/lib/types"
 
+type AuthState = {
+  user: User
+  pendingPassword?: string
+}
+
 export default function Page() {
-  const [user, setUser] = useState<User | null>(null)
+  const [auth, setAuth] = useState<AuthState | null>(null)
 
   async function handleLogout() {
-    // End the Sanctum session (no-op in the mock), then clear local state.
     try {
       await logout()
     } finally {
-      setUser(null)
+      setAuth(null)
     }
   }
 
-  if (!user) {
-    return <LoginScreen onLogin={setUser} />
+  if (!auth) {
+    return (
+      <LoginScreen
+        onLogin={(user, password) => {
+          setAuth({ user, pendingPassword: password })
+        }}
+      />
+    )
+  }
+
+  const { user, pendingPassword } = auth
+
+  if (user.must_change_password) {
+    return (
+      <ChangePasswordScreen
+        user={user}
+        initialPassword={pendingPassword ?? ""}
+        onPasswordChanged={(updated) => {
+          setAuth({ user: updated })
+        }}
+      />
+    )
   }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <AppHeader
-        user={user}
-        onLogout={handleLogout}
-      />
+      <AppHeader user={user} onLogout={handleLogout} />
       {user.role === "finance" ? (
         <FinanceDashboard />
       ) : (

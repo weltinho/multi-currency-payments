@@ -1,9 +1,8 @@
-# Dependencies
+# Dependencies (vendor/ installed in Docker on first boot)
 node_modules/
 vendor/
 
-
-!.env.example
+# Note: .env and backend/.env are committed for this test repo (reviewer convenience).
 
 # Build / cache
 .next/

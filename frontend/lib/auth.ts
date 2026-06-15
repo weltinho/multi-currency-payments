@@ -1,5 +1,7 @@
 import { apiFetch, ensureCsrfCookie, ApiError } from "./http"
-import type { User } from "./types"
+import type { ChangePasswordPayload, User } from "./types"
+
+export type { ChangePasswordPayload } from "./types"
 
 /**
  * AUTH (Laravel Sanctum, cookie-based)
@@ -33,6 +35,13 @@ export async function login(email: string, password: string): Promise<User> {
 
 export function logout(): Promise<void> {
   return apiFetch("/logout", { method: "POST" })
+}
+
+export async function changePassword(payload: ChangePasswordPayload): Promise<User> {
+  return apiFetch<User>("/password", {
+    method: "PUT",
+    body: payload,
+  })
 }
 
 export async function currentUser(): Promise<User | null> {

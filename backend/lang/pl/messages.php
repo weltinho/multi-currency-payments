@@ -4,12 +4,22 @@ return [
     'auth' => [
         'authenticated' => 'Uwierzytelniono',
         'invalid_credentials' => 'Podane dane logowania są nieprawidłowe.',
+        'password_change_required' => 'Musisz zmienić hasło, zanim będziesz mógł kontynuować.',
+        'password_changed' => 'Hasło zostało zaktualizowane.',
+        'validation' => [
+            'current_password_required' => 'Obecne hasło jest wymagane.',
+            'current_password_invalid' => 'Obecne hasło jest nieprawidłowe.',
+            'password_required' => 'Nowe hasło jest wymagane.',
+            'password_format' => 'Nowe hasło musi składać się z dokładnie 6 cyfr.',
+            'password_confirmed' => 'Potwierdzenie hasła nie pasuje.',
+        ],
     ],
     'payment' => [
         'forbidden' => 'Nie masz uprawnień do wykonania tej operacji.',
         'not_found' => 'Nie znaleziono płatności.',
         'not_pending' => 'Tylko oczekujące płatności mogą zostać zatwierdzone lub odrzucone.',
         'rate_unavailable' => 'Kurs wymiany jest tymczasowo niedostępny. Spróbuj ponownie później.',
+        'rate_unavailable_missing_key' => 'Kurs wymiany niedostępny: ustaw EXCHANGE_RATE_API_KEY w backend/.env (darmowy klucz na exchangerate-api.com).',
         'unsupported_currency' => 'Twoja waluta nie jest obsługiwana do przeliczania kursu wymiany.',
     ],
     'employee' => [

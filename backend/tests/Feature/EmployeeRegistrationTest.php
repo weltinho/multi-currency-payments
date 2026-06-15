@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
+/** Finance-provisioned registration — our take on the brief's "Registration" requirement. */
 class EmployeeRegistrationTest extends TestCase
 {
     use RefreshDatabase;
@@ -26,7 +28,6 @@ class EmployeeRegistrationTest extends TestCase
         $response = $this->actingAs($finance)->postJson('/api/employees', [
             'name' => 'New Employee',
             'email' => 'new.employee@buzzvel.com',
-            'password' => '123456',
             'country_code' => 'BR',
         ]);
 
@@ -34,6 +35,7 @@ class EmployeeRegistrationTest extends TestCase
             ->assertJsonPath('name', 'New Employee')
             ->assertJsonPath('email', 'new.employee@buzzvel.com')
             ->assertJsonPath('role', 'employee')
+            ->assertJsonPath('must_change_password', true)
             ->assertJsonPath('country', 'Brazil')
             ->assertJsonPath('country_code', 'BR')
             ->assertJsonPath('currency', 'BRL');
@@ -43,7 +45,32 @@ class EmployeeRegistrationTest extends TestCase
             'role' => 'employee',
             'country_code' => 'BR',
             'currency' => 'BRL',
+            'must_change_password' => true,
         ]);
+    }
+
+    public function test_provisioned_employee_gets_name_as_initial_password(): void
+    {
+        $finance = User::create([
+            'name' => 'Helena Marques',
+            'email' => 'finance@buzzvel.com',
+            'password' => '123456',
+            'role' => UserRole::Finance,
+            'country' => 'Portugal',
+            'country_code' => 'PT',
+            'currency' => 'EUR',
+        ]);
+
+        $this->actingAs($finance)->postJson('/api/employees', [
+            'name' => 'Maria Silva',
+            'email' => 'maria.silva@buzzvel.com',
+            'country_code' => 'PT',
+        ])->assertCreated();
+
+        $employee = User::query()->where('email', 'maria.silva@buzzvel.com')->firstOrFail();
+
+        $this->assertTrue($employee->must_change_password);
+        $this->assertTrue(Hash::check('Maria Silva', $employee->password));
     }
 
     public function test_employee_cannot_register_other_employees(): void
@@ -61,7 +88,6 @@ class EmployeeRegistrationTest extends TestCase
         $response = $this->actingAs($employee)->postJson('/api/employees', [
             'name' => 'Blocked',
             'email' => 'blocked@buzzvel.com',
-            'password' => '123456',
             'country_code' => 'US',
         ]);
 
@@ -93,7 +119,6 @@ class EmployeeRegistrationTest extends TestCase
         $response = $this->actingAs($finance)->postJson('/api/employees', [
             'name' => 'Duplicate',
             'email' => 'rafael@buzzvel.com',
-            'password' => '123456',
             'country_code' => 'BR',
         ], [
             'X-App-Language' => 'en',

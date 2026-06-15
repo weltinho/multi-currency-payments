@@ -15,6 +15,7 @@ export interface User {
   country: string
   country_code: string
   currency: CurrencyCode
+  must_change_password: boolean
 }
 
 export type CurrencyCode =
@@ -91,6 +92,11 @@ export interface CreatePaymentPayload {
 export interface RegisterEmployeePayload {
   name: string
   email: string
-  password: string
   country_code: string
+}
+
+export interface ChangePasswordPayload {
+  current_password: string
+  password: string
+  password_confirmation: string
 }

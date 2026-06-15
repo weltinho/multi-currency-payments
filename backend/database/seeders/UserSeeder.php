@@ -76,6 +76,8 @@ class UserSeeder extends Seeder
 
     private function seedUser(array $attributes): void
     {
+        // updateOrCreate makes re-running seed safe. Demo password is always 123456;
+        // must_change_password stays false so reviewers can log in without the forced-change flow.
         User::updateOrCreate(
             ['email' => $attributes['email']],
             array_merge($attributes, ['password' => '123456']),

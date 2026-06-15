@@ -4,12 +4,22 @@ return [
     'auth' => [
         'authenticated' => 'Autentiserad',
         'invalid_credentials' => 'De angivna inloggningsuppgifterna är felaktiga.',
+        'password_change_required' => 'Du måste byta lösenord innan du fortsätter.',
+        'password_changed' => 'Lösenordet har uppdaterats.',
+        'validation' => [
+            'current_password_required' => 'Nuvarande lösenord krävs.',
+            'current_password_invalid' => 'Nuvarande lösenord är felaktigt.',
+            'password_required' => 'Nytt lösenord krävs.',
+            'password_format' => 'Nytt lösenord måste vara exakt 6 siffror.',
+            'password_confirmed' => 'Lösenordsbekräftelsen matchar inte.',
+        ],
     ],
     'payment' => [
         'forbidden' => 'Du har inte behörighet att utföra denna åtgärd.',
         'not_found' => 'Betalningen hittades inte.',
         'not_pending' => 'Endast väntande betalningar kan godkännas eller avvisas.',
         'rate_unavailable' => 'Växelkursen är tillfälligt otillgänglig. Försök igen senare.',
+        'rate_unavailable_missing_key' => 'Växelkurs otillgänglig: ange EXCHANGE_RATE_API_KEY i backend/.env (gratis nyckel på exchangerate-api.com).',
         'unsupported_currency' => 'Din valuta stöds inte för växelkurskonvertering.',
     ],
     'employee' => [

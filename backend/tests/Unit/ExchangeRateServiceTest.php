@@ -53,4 +53,17 @@ class ExchangeRateServiceTest extends TestCase
 
         $this->assertSame(676.33, round($localAmount / $rate, 2));
     }
+
+    public function test_it_reports_missing_api_key_when_debug_is_enabled(): void
+    {
+        config([
+            'app.debug' => true,
+            'services.exchange_rate.key' => null,
+        ]);
+
+        $this->expectException(\App\Exceptions\ExchangeRateException::class);
+        $this->expectExceptionMessage('payment.rate_unavailable_missing_key');
+
+        (new ExchangeRateService)->getRateForCurrency('BRL');
+    }
 }

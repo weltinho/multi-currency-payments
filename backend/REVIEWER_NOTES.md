@@ -14,7 +14,7 @@ Short guide to intentional design choices. Start here, then follow the file-leve
 
 - **Laravel Sanctum** cookie SPA (same-origin via Nginx), not Passport — fits the Next.js frontend without storing tokens in JavaScript.
 - **Login / logout** only for end users. There is no public self-registration.
-- **Registration** is implemented as **finance-provisioned employee accounts** (`POST /api/employees`). This matches a real corporate reimbursement flow: HR/finance onboards workers; employees only sign in. Finance accounts are **seed-only** (not self-registerable).
+- **Registration** is implemented as **finance-provisioned employee accounts** (`POST /api/employees`). Finance creates employee users; initial password is the employee's **full name**; `must_change_password` forces a password update on first login (`PUT /api/password`).
 - Demo credentials: `finance@buzzvel.com` / `123456` (all seeded users share `123456`). `GET /api/test-users` lists them for the login modal.
 
 ## Payments & exchange rates

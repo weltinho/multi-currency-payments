@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
+/** Unit tests for finance-only employee provisioning and country profile lookup. */
 class EmployeeServiceTest extends TestCase
 {
     use RefreshDatabase;
@@ -33,13 +34,13 @@ class EmployeeServiceTest extends TestCase
         $result = $service->register($finance, [
             'name' => 'Ana Costa',
             'email' => 'ana.costa@buzzvel.com',
-            'password' => '123456',
             'country_code' => 'PT',
         ]);
 
         $this->assertSame('employee', $result['role']);
         $this->assertSame('Portugal', $result['country']);
         $this->assertSame('EUR', $result['currency']);
+        $this->assertTrue($result['must_change_password']);
     }
 
     public function test_employee_cannot_register_users(): void
@@ -60,7 +61,6 @@ class EmployeeServiceTest extends TestCase
         $service->register($employee, [
             'name' => 'Blocked',
             'email' => 'blocked@buzzvel.com',
-            'password' => '123456',
             'country_code' => 'BR',
         ]);
     }
@@ -83,7 +83,6 @@ class EmployeeServiceTest extends TestCase
         $service->register($finance, [
             'name' => 'Invalid',
             'email' => 'invalid@buzzvel.com',
-            'password' => '123456',
             'country_code' => 'ZZ',
         ]);
     }

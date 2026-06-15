@@ -26,7 +26,12 @@ class ExchangeRateService implements ExchangeRateServiceContract
         $apiKey = config('services.exchange_rate.key');
 
         if (! $apiKey) {
-            throw new ExchangeRateException;
+            // In local dev we surface a clearer message so reviewers know to set the key.
+            throw new ExchangeRateException(
+                config('app.debug')
+                    ? 'payment.rate_unavailable_missing_key'
+                    : 'payment.rate_unavailable'
+            );
         }
 
         $response = Http::timeout(10)->get("{$baseUrl}/{$apiKey}/latest/EUR");
