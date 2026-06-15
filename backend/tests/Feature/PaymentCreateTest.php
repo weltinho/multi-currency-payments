@@ -29,6 +29,7 @@ class PaymentCreateTest extends TestCase
                 'base_code' => 'EUR',
                 'conversion_rates' => [
                     'BRL' => 6.21,
+                    'USD' => 1.08,
                 ],
             ]),
         ]);
@@ -66,6 +67,61 @@ class PaymentCreateTest extends TestCase
             'currency' => 'BRL',
             'status' => 'pending',
         ]);
+    }
+
+    public function test_employee_can_create_payment_in_another_currency(): void
+    {
+        $employee = User::create([
+            'name' => 'Rafael Souza',
+            'email' => 'rafael@buzzvel.com',
+            'password' => '123456',
+            'role' => UserRole::Employee,
+            'country' => 'Brazil',
+            'country_code' => 'BR',
+            'currency' => 'BRL',
+        ]);
+
+        $response = $this->actingAs($employee)->postJson('/api/payments', [
+            'description' => 'USD reimbursement',
+            'local_amount' => 108,
+            'currency' => 'USD',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('status', 'pending')
+            ->assertJsonPath('currency', 'USD')
+            ->assertJsonPath('local_amount', 108)
+            ->assertJsonPath('exchange_rate', 1.08)
+            ->assertJsonPath('eur_amount', 100);
+
+        $this->assertDatabaseHas('payment_requests', [
+            'user_id' => $employee->id,
+            'description' => 'USD reimbursement',
+            'currency' => 'USD',
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_employee_cannot_create_payment_with_unsupported_currency(): void
+    {
+        $employee = User::create([
+            'name' => 'Rafael Souza',
+            'email' => 'rafael@buzzvel.com',
+            'password' => '123456',
+            'role' => UserRole::Employee,
+            'country' => 'Brazil',
+            'country_code' => 'BR',
+            'currency' => 'BRL',
+        ]);
+
+        $response = $this->actingAs($employee)->postJson('/api/payments', [
+            'description' => 'Invalid currency',
+            'local_amount' => 100,
+            'currency' => 'XYZ',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['currency']);
     }
 
     public function test_finance_cannot_create_payment_request(): void

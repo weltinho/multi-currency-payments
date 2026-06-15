@@ -11,16 +11,10 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { CountryCombobox } from "@/components/country-combobox"
 import { useLanguage } from "@/components/language-provider"
 import { registerEmployee } from "@/lib/api"
-import { EMPLOYEE_COUNTRY_PROFILES } from "@/lib/employee-countries"
+import { getFirstName } from "@/lib/utils"
 import { ApiError } from "@/lib/http"
 import { CheckCircle2, Loader2, UserPlus } from "lucide-react"
 
@@ -70,7 +64,7 @@ export function RegisterEmployeeDialog({ onCreated }: RegisterEmployeeDialogProp
       setSuccess(
         t("finance.registerSuccess", {
           name: created.name,
-          password: trimmedName,
+          password: getFirstName(trimmedName),
         }),
       )
       onCreated?.()
@@ -119,7 +113,6 @@ export function RegisterEmployeeDialog({ onCreated }: RegisterEmployeeDialogProp
               id="employee-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={t("finance.employeeName")}
               maxLength={255}
               required
             />
@@ -132,7 +125,6 @@ export function RegisterEmployeeDialog({ onCreated }: RegisterEmployeeDialogProp
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@company.com"
               maxLength={255}
               required
             />
@@ -144,18 +136,12 @@ export function RegisterEmployeeDialog({ onCreated }: RegisterEmployeeDialogProp
 
           <div className="space-y-2">
             <Label htmlFor="employee-country">{t("finance.employeeCountry")}</Label>
-            <Select value={countryCode} onValueChange={(v) => setCountryCode(v ?? "BR")}>
-              <SelectTrigger id="employee-country">
-                <SelectValue placeholder={t("finance.employeeCountryPlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                {EMPLOYEE_COUNTRY_PROFILES.map((profile) => (
-                  <SelectItem key={profile.country_code} value={profile.country_code}>
-                    {profile.country} · {profile.currency}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CountryCombobox
+              id="employee-country"
+              value={countryCode}
+              onValueChange={setCountryCode}
+              disabled={submitting}
+            />
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}

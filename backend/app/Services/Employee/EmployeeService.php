@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Exceptions\ForbiddenException;
 use App\Models\User;
 use App\Support\EmployeeCountryProfiles;
+use App\Support\PersonName;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -49,12 +50,12 @@ class EmployeeService implements EmployeeServiceContract
             ]);
         }
 
-        // Initial password is the employee's full name; they must change it on first login.
+        // Initial password is the employee's first name; they must change it on first login.
         // PasswordPolicy only applies to the *new* password, not this temporary one.
         $employee = User::query()->create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => $data['name'],
+            'password' => PersonName::firstName($data['name']),
             'must_change_password' => true,
             'role' => UserRole::Employee,
             'country' => $profile['country'],

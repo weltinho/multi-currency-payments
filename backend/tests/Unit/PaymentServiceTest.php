@@ -137,6 +137,66 @@ class PaymentServiceTest extends TestCase
         );
     }
 
+    public function test_employee_can_create_payment_with_explicit_currency(): void
+    {
+        $employee = $this->makeUser(UserRole::Employee, 5);
+        $employee->currency = 'BRL';
+
+        $exchangeRates = Mockery::mock(ExchangeRateServiceContract::class);
+        $exchangeRates->shouldReceive('getRateForCurrency')
+            ->once()
+            ->with('USD')
+            ->andReturn([
+                'rate' => 1.08,
+                'source' => 'exchangerate-api.com',
+                'fetched_at' => now(),
+            ]);
+
+        $created = ['id' => 11, 'status' => 'pending', 'currency' => 'USD', 'eur_amount' => 100.0];
+
+        $repository = Mockery::mock(PaymentRepositoryContract::class);
+        $repository->shouldReceive('create')
+            ->once()
+            ->with(Mockery::on(function (array $data) {
+                return $data['user_id'] === 5
+                    && $data['currency'] === 'USD'
+                    && $data['local_amount'] === 108.0
+                    && $data['exchange_rate'] === 1.08
+                    && $data['eur_amount'] === 100.0;
+            }))
+            ->andReturn($created);
+
+        $service = new PaymentService($repository, $exchangeRates);
+
+        $this->assertSame(
+            $created,
+            $service->create($employee, [
+                'description' => 'USD expense',
+                'local_amount' => 108,
+                'currency' => 'USD',
+            ]),
+        );
+    }
+
+    public function test_expire_stale_pending_delegates_to_repository(): void
+    {
+        config(['payments.pending_expiration_hours' => 48]);
+
+        $repository = Mockery::mock(PaymentRepositoryContract::class);
+        $repository->shouldReceive('expirePendingOlderThan')
+            ->once()
+            ->with(Mockery::on(function (\DateTimeInterface $cutoff) {
+                $expected = now()->subHours(48);
+
+                return abs($cutoff->getTimestamp() - $expected->getTimestamp()) < 2;
+            }))
+            ->andReturn(3);
+
+        $service = new PaymentService($repository, $this->exchangeRates());
+
+        $this->assertSame(3, $service->expireStalePending());
+    }
+
     private function exchangeRates(): ExchangeRateServiceContract
     {
         return Mockery::mock(ExchangeRateServiceContract::class);

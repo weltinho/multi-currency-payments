@@ -17,7 +17,7 @@ class ChangePasswordTest extends TestCase
         $employee = User::create([
             'name' => 'New Employee',
             'email' => 'new.employee@buzzvel.com',
-            'password' => 'New Employee',
+            'password' => 'New',
             'must_change_password' => true,
             'role' => UserRole::Employee,
             'country' => 'Brazil',
@@ -39,7 +39,7 @@ class ChangePasswordTest extends TestCase
         $employee = User::create([
             'name' => 'New Employee',
             'email' => 'new.employee@buzzvel.com',
-            'password' => 'New Employee',
+            'password' => 'New',
             'must_change_password' => true,
             'role' => UserRole::Employee,
             'country' => 'Brazil',
@@ -48,7 +48,7 @@ class ChangePasswordTest extends TestCase
         ]);
 
         $response = $this->actingAs($employee)->putJson('/api/password', [
-            'current_password' => 'New Employee',
+            'current_password' => 'New',
             'password' => '654321',
             'password_confirmation' => '654321',
         ]);
@@ -67,7 +67,7 @@ class ChangePasswordTest extends TestCase
         $employee = User::create([
             'name' => 'New Employee',
             'email' => 'new.employee@buzzvel.com',
-            'password' => 'New Employee',
+            'password' => 'New',
             'must_change_password' => true,
             'role' => UserRole::Employee,
             'country' => 'Brazil',
@@ -92,7 +92,7 @@ class ChangePasswordTest extends TestCase
         $employee = User::create([
             'name' => 'New Employee',
             'email' => 'new.employee@buzzvel.com',
-            'password' => 'New Employee',
+            'password' => 'New',
             'must_change_password' => true,
             'role' => UserRole::Employee,
             'country' => 'Brazil',
@@ -101,7 +101,7 @@ class ChangePasswordTest extends TestCase
         ]);
 
         $response = $this->actingAs($employee)->putJson('/api/password', [
-            'current_password' => 'New Employee',
+            'current_password' => 'New',
             'password' => 'not-six-digits',
             'password_confirmation' => 'not-six-digits',
         ], [

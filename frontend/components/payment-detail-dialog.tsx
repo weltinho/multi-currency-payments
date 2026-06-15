@@ -106,7 +106,7 @@ export function PaymentDetailDialog({
 
         <div className="space-y-6 p-6">
           {/* Valores */}
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-lg border border-border bg-card p-4">
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">{t("detail.localAmount")}</p>
@@ -152,8 +152,18 @@ export function PaymentDetailDialog({
               />
               <MetaBlock
                 icon={<Clock className="size-4" />}
-                label={t("detail.reviewedAt")}
-                value={payment.reviewed_at ? formatDateTime(payment.reviewed_at, locale) : "—"}
+                label={
+                  payment.status === "expired"
+                    ? t("detail.expiredAt")
+                    : t("detail.reviewedAt")
+                }
+                value={
+                  payment.status === "expired"
+                    ? formatDateTime(payment.updated_at, locale)
+                    : payment.reviewed_at
+                      ? formatDateTime(payment.reviewed_at, locale)
+                      : "—"
+                }
               />
             </div>
           </div>

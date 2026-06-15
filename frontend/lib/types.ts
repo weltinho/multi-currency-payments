@@ -47,6 +47,7 @@ export interface PaymentRequest {
   eur_amount: number
   status: PaymentStatus
   created_at: string
+  updated_at: string
   reviewed_at: string | null
   rate_source: string
   description: string
@@ -87,6 +88,7 @@ export interface PaymentSummary {
 export interface CreatePaymentPayload {
   description: string
   local_amount: number
+  currency?: CurrencyCode
 }
 
 export interface RegisterEmployeePayload {

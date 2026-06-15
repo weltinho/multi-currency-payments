@@ -49,7 +49,7 @@ class EmployeeRegistrationTest extends TestCase
         ]);
     }
 
-    public function test_provisioned_employee_gets_name_as_initial_password(): void
+    public function test_provisioned_employee_gets_first_name_as_initial_password(): void
     {
         $finance = User::create([
             'name' => 'Helena Marques',
@@ -70,7 +70,7 @@ class EmployeeRegistrationTest extends TestCase
         $employee = User::query()->where('email', 'maria.silva@buzzvel.com')->firstOrFail();
 
         $this->assertTrue($employee->must_change_password);
-        $this->assertTrue(Hash::check('Maria Silva', $employee->password));
+        $this->assertTrue(Hash::check('Maria', $employee->password));
     }
 
     public function test_employee_cannot_register_other_employees(): void

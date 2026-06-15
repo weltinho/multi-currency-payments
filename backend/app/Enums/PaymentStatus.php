@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-/** Payment lifecycle — expired status will be set by a scheduled command (Phase 3). */
+/** Payment lifecycle — expired is set by payments:expire-pending when pending > 48h. */
 enum PaymentStatus: string
 {
     case Pending = 'pending';

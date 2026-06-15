@@ -97,7 +97,8 @@ class PaymentService implements PaymentServiceContract
         }
 
         // Rate captured once here — never updated afterwards (model guard enforces).
-        $rateData = $this->exchangeRates->getRateForCurrency($user->currency);
+        $currency = $data['currency'] ?? $user->currency;
+        $rateData = $this->exchangeRates->getRateForCurrency($currency);
         $localAmount = (float) $data['local_amount'];
         $eurAmount = round($localAmount / $rateData['rate'], 2);
 
@@ -105,8 +106,7 @@ class PaymentService implements PaymentServiceContract
             'reference' => $this->generateReference(),
             'user_id' => $user->id,
             'description' => $data['description'],
-            // Currency from profile, not request — matches employment country.
-            'currency' => $user->currency,
+            'currency' => $currency,
             'local_amount' => $localAmount,
             'exchange_rate' => $rateData['rate'],
             'eur_amount' => $eurAmount,
@@ -154,6 +154,16 @@ class PaymentService implements PaymentServiceContract
         }
 
         return $updated;
+    }
+
+    public function expireStalePending(): int
+    {
+        // Batch expiry: one query for all stale pendings. Alternative would be a
+        // Job::dispatch()->delay(48h) on create — we skipped that; see README.
+        $hours = (int) config('payments.pending_expiration_hours', 48);
+        $cutoff = now()->subHours($hours);
+
+        return $this->payments->expirePendingOlderThan($cutoff);
     }
 
     private function generateReference(): string

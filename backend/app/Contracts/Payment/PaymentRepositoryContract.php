@@ -25,4 +25,9 @@ interface PaymentRepositoryContract
      * @return array<string, mixed>
      */
     public function create(array $data): array;
+
+    /**
+     * Bulk-expire pending rows created on or before $cutoff. Returns how many were updated.
+     */
+    public function expirePendingOlderThan(\DateTimeInterface $cutoff): int;
 }

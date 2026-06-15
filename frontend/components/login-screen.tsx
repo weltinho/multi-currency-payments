@@ -57,19 +57,19 @@ export function LoginScreen({ onLogin }: { onLogin: (user: User, password: strin
 
         <Card className="border-border shadow-sm">
           <CardContent className="p-6">
-            <form className="space-y-4" onSubmit={handleSubmit}>
+            <form className="space-y-4" autoComplete="off" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="email">{t("login.email")}</Label>
                 <Input
                   id="email"
+                  name="login-email"
                   type="email"
-                  placeholder="name@buzzvel.com"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value)
                     if (error) setError(false)
                   }}
-                  autoComplete="email"
+                  autoComplete="off"
                   aria-invalid={error}
                 />
               </div>
@@ -77,14 +77,15 @@ export function LoginScreen({ onLogin }: { onLogin: (user: User, password: strin
                 <Label htmlFor="password">{t("login.password")}</Label>
                 <Input
                   id="password"
+                  name="login-password"
                   type="password"
-                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value)
                     if (error) setError(false)
                   }}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
+                  aria-invalid={error}
                 />
               </div>
               {error && (

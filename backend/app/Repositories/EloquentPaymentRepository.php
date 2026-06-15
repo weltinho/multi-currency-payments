@@ -70,6 +70,16 @@ class EloquentPaymentRepository implements PaymentRepositoryContract
         return $payment->fresh(['user'])->toApiArray();
     }
 
+    public function expirePendingOlderThan(\DateTimeInterface $cutoff): int
+    {
+        // System expiry — leave reviewed_at null (finance never touched these).
+        // Only pending rows; approved/rejected are untouched by the sweeper.
+        return Payment::query()
+            ->where('status', PaymentStatus::Pending)
+            ->where('created_at', '<=', $cutoff)
+            ->update(['status' => PaymentStatus::Expired]);
+    }
+
     /**
      * @param  Builder<Payment>  $query
      * @param  array<string, mixed>  $filters

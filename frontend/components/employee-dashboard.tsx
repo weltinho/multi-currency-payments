@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type FormEvent } from "react"
 import useSWR, { mutate } from "swr"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,26 +20,32 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { CurrencySelect } from "@/components/currency-select"
 import { StatusBadge } from "@/components/status-badge"
 import { PaymentDetailDialog } from "@/components/payment-detail-dialog"
 import { PaginationControls } from "@/components/pagination-controls"
+import { ResponsiveTableLayout } from "@/components/responsive-table-layout"
 import { useLanguage } from "@/components/language-provider"
 import {
   REFERENCE_RATES,
   formatCurrency,
-  formatDate,
+  formatDateTime,
 } from "@/lib/data"
 import { createPayment, fetchPayments } from "@/lib/api"
 import { ApiError } from "@/lib/http"
-import type { PaymentRequest, User } from "@/lib/types"
+import type { CurrencyCode, PaymentRequest, User } from "@/lib/types"
 import { ArrowRight, Loader2, Plus } from "lucide-react"
 
 const PER_PAGE = 6
+
+const TABLE_ROW_CLASS =
+  "cursor-pointer even:bg-muted/40 hover:bg-primary/10 dark:even:bg-white/[0.02] dark:hover:bg-white/[0.04]"
 
 export function EmployeeDashboard({ user }: { user: User }) {
   const { t, locale } = useLanguage()
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
+  const [paymentCurrency, setPaymentCurrency] = useState<CurrencyCode>(user.currency)
   const [selected, setSelected] = useState<PaymentRequest | null>(null)
   const [open, setOpen] = useState(false)
   const [page, setPage] = useState(1)
@@ -54,16 +60,17 @@ export function EmployeeDashboard({ user }: { user: User }) {
     isValidating,
   } = useSWR(
     listKey,
-    ([, userId, p]) => fetchPayments({ user_id: userId, page: p, per_page: PER_PAGE }),
+    ([, userId, p]: readonly [typeof listKey[0], number, number]) =>
+      fetchPayments({ user_id: userId, page: p, per_page: PER_PAGE }),
     { keepPreviousData: true },
   )
 
-  const history = pageData?.data ?? []
+  const history: PaymentRequest[] = pageData?.data ?? []
   const busy = isLoading || isValidating
   const isEmpty = !isLoading && history.length === 0
 
   const numericAmount = Number.parseFloat(amount) || 0
-  const rate = REFERENCE_RATES[user.currency] ?? 1
+  const rate = REFERENCE_RATES[paymentCurrency] ?? 1
   const eurEstimate = rate > 0 ? numericAmount / rate : 0
 
   function openDetail(payment: PaymentRequest) {
@@ -71,7 +78,7 @@ export function EmployeeDashboard({ user }: { user: User }) {
     setOpen(true)
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (numericAmount <= 0 || !description.trim()) {
       return
@@ -84,11 +91,13 @@ export function EmployeeDashboard({ user }: { user: User }) {
       await createPayment({
         description: description.trim(),
         local_amount: numericAmount,
+        currency: paymentCurrency,
       })
       setAmount("")
       setDescription("")
+      setPaymentCurrency(user.currency)
       setPage(1)
-      await mutate((key) => Array.isArray(key) && key[0] === "my-payments")
+      await mutate((key: unknown) => Array.isArray(key) && key[0] === "my-payments")
     } catch (err) {
       setSubmitError(
         err instanceof ApiError && err.message
@@ -132,6 +141,21 @@ export function EmployeeDashboard({ user }: { user: User }) {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="currency">{t("employee.paymentCurrency")}</Label>
+                <CurrencySelect
+                  id="currency"
+                  value={paymentCurrency}
+                  onValueChange={setPaymentCurrency}
+                  defaultCurrency={user.currency}
+                  defaultLabel={t("employee.profileCurrencyDefault")}
+                  disabled={submitting}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t("employee.currencyHint", { currency: user.currency })}
+                </p>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="amount">{t("employee.amount")}</Label>
                 <Input
                   id="amount"
@@ -158,7 +182,7 @@ export function EmployeeDashboard({ user }: { user: User }) {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {t("employee.referenceRate", { rate, currency: user.currency })}
+                  {t("employee.referenceRate", { rate, currency: paymentCurrency })}
                 </p>
               </div>
 
@@ -205,84 +229,88 @@ export function EmployeeDashboard({ user }: { user: User }) {
             ) : (
               <>
                 <div className={busy ? "opacity-60 transition-opacity" : undefined}>
-                <ul className="space-y-3 px-4 sm:hidden">
-                  {history.map((p) => (
-                    <li key={p.id}>
-                      <button
-                        type="button"
-                        onClick={() => openDetail(p)}
-                        className="w-full rounded-xl border border-border bg-card p-4 text-left transition-colors active:bg-muted/60"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-medium text-foreground">{p.currency}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatDate(p.created_at, locale)}
-                            </p>
-                          </div>
-                          <StatusBadge status={p.status} />
-                        </div>
-                        <div className="mt-3 flex items-end justify-between border-t border-border pt-3">
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                              {t("table.localAmount")}
-                            </p>
-                            <p className="font-medium tabular-nums text-foreground">
-                              {formatCurrency(p.local_amount, p.currency)}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                              {t("table.eur")}
-                            </p>
-                            <p className="font-medium tabular-nums text-foreground">
-                              {formatCurrency(p.eur_amount, "EUR")}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="hidden overflow-x-auto sm:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("table.date")}</TableHead>
-                        <TableHead>{t("table.currency")}</TableHead>
-                        <TableHead className="text-right">{t("table.localAmount")}</TableHead>
-                        <TableHead className="text-right">{t("table.eur")}</TableHead>
-                        <TableHead className="text-right">{t("table.status")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                <ResponsiveTableLayout
+                  measureKey={`${history.length}-${locale}-${page}`}
+                  cards={
+                    <ul className="space-y-3 px-4">
                       {history.map((p) => (
-                        <TableRow
-                          key={p.id}
-                          className="cursor-pointer even:bg-muted/40 hover:bg-primary/10 dark:hover:bg-primary/15"
-                          onClick={() => openDetail(p)}
-                        >
-                          <TableCell className="whitespace-nowrap text-muted-foreground">
-                            {formatDate(p.created_at, locale)}
-                          </TableCell>
-                          <TableCell className="font-medium">{p.currency}</TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {formatCurrency(p.local_amount, p.currency)}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {formatCurrency(p.eur_amount, "EUR")}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end">
+                        <li key={p.id}>
+                          <button
+                            type="button"
+                            onClick={() => openDetail(p)}
+                            className="w-full rounded-lg border border-border bg-card p-4 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:bg-muted/60"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatDateTime(p.created_at, locale)}
+                                </p>
+                                <p className="font-medium text-foreground">{p.currency}</p>
+                              </div>
                               <StatusBadge status={p.status} />
                             </div>
-                          </TableCell>
-                        </TableRow>
+                            <div className="mt-3 flex items-end justify-between border-t border-border pt-3">
+                              <div>
+                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                  {t("table.localAmount")}
+                                </p>
+                                <p className="font-mono font-medium tabular-nums text-foreground">
+                                  {formatCurrency(p.local_amount, p.currency)}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                  {t("table.eur")}
+                                </p>
+                                <p className="font-mono font-medium tabular-nums text-foreground">
+                                  {formatCurrency(p.eur_amount, "EUR")}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        </li>
                       ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                    </ul>
+                  }
+                  table={
+                    <Table scrollable={false}>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t("table.date")}</TableHead>
+                          <TableHead>{t("table.currency")}</TableHead>
+                          <TableHead className="text-right">{t("table.localAmount")}</TableHead>
+                          <TableHead className="text-right">{t("table.eur")}</TableHead>
+                          <TableHead className="text-right">{t("table.status")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {history.map((p) => (
+                          <TableRow
+                            key={p.id}
+                            className={TABLE_ROW_CLASS}
+                            onClick={() => openDetail(p)}
+                          >
+                            <TableCell className="whitespace-nowrap text-muted-foreground">
+                              {formatDateTime(p.created_at, locale)}
+                            </TableCell>
+                            <TableCell className="font-medium">{p.currency}</TableCell>
+                            <TableCell className="text-right font-mono tabular-nums">
+                              {formatCurrency(p.local_amount, p.currency)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono tabular-nums">
+                              {formatCurrency(p.eur_amount, "EUR")}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end">
+                                <StatusBadge status={p.status} />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  }
+                />
                 </div>
 
                 {pageData && (

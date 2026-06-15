@@ -21,13 +21,18 @@ import {
 } from "@/components/ui/table"
 import { StatusBadge } from "@/components/status-badge"
 import { PaymentDetailDialog } from "@/components/payment-detail-dialog"
+import {
+  PaymentDecisionDialog,
+  type PaymentDecision,
+} from "@/components/payment-decision-dialog"
 import { PaginationControls } from "@/components/pagination-controls"
+import { ResponsiveTableLayout } from "@/components/responsive-table-layout"
 import { useLanguage } from "@/components/language-provider"
 import { cn } from "@/lib/utils"
-import { STATUS_META, formatCurrency } from "@/lib/data"
+import { STATUS_META, formatCurrency, formatDateTime } from "@/lib/data"
 import { decidePayment, fetchEmployees, fetchPayments, fetchPaymentSummary } from "@/lib/api"
 import { RegisterEmployeeDialog } from "@/components/register-employee-dialog"
-import type { PaymentQuery, PaymentRequest, PaymentStatus } from "@/lib/types"
+import type { PaymentQuery, PaymentRequest, PaymentStatus, User } from "@/lib/types"
 import type { TranslationKey } from "@/lib/i18n"
 import { Check, Loader2, Search, X } from "lucide-react"
 
@@ -36,14 +41,43 @@ type FilterValue = "all" | PaymentStatus
 const FILTERS: FilterValue[] = ["all", "pending", "approved", "rejected", "expired"]
 const PER_PAGE = 8
 
-// Collaborator names for the typeahead helper, loaded from the API.
-const EMPTY_COLLABORATORS: string[] = []
+const TABLE_ROW_CLASS =
+  "cursor-pointer even:bg-muted/40 hover:bg-primary/10 dark:even:bg-white/[0.02] dark:hover:bg-white/[0.04]"
 
-function StatCard({ label, value }: { label: string; value: string }) {
+const APPROVE_BUTTON_CLASS =
+  "min-h-9 min-w-9 border-border text-emerald-500 hover:bg-emerald-500/15 hover:text-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-500/15"
+
+const REJECT_BUTTON_CLASS =
+  "min-h-9 min-w-9 border-border text-red-500 hover:bg-red-500/15 hover:text-red-400 dark:text-red-400 dark:hover:bg-red-500/15"
+
+// Collaborator names for the typeahead helper, loaded from the API.
+const EMPTY_EMPLOYEES: User[] = []
+
+function StatCard({
+  label,
+  value,
+  highlight,
+}: {
+  label: string
+  value: string
+  highlight?: boolean
+}) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div
+      className={cn(
+        "relative rounded-lg border border-border bg-card p-4",
+        highlight &&
+          "dark:border-emerald-500/20 dark:ring-1 dark:ring-emerald-500/10",
+      )}
+    >
+      {highlight && (
+        <span
+          className="absolute top-3 right-3 size-1.5 rounded-full bg-emerald-400"
+          aria-hidden="true"
+        />
+      )}
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground tabular-nums">
+      <p className="mt-1 font-mono text-2xl font-semibold tracking-tight text-foreground tabular-nums">
         {value}
       </p>
     </div>
@@ -51,13 +85,17 @@ function StatCard({ label, value }: { label: string; value: string }) {
 }
 
 export function FinanceDashboard() {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const [filter, setFilter] = useState<FilterValue>("all")
   const [collaborator, setCollaborator] = useState("")
   const [page, setPage] = useState(1)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selected, setSelected] = useState<PaymentRequest | null>(null)
   const [open, setOpen] = useState(false)
+  const [decisionContext, setDecisionContext] = useState<{
+    payment: PaymentRequest
+    decision: PaymentDecision
+  } | null>(null)
   const blurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // GET /api/payments?page=&per_page=&status=&collaborator=
@@ -89,7 +127,7 @@ export function FinanceDashboard() {
 
   const collaboratorNames = useMemo(
     () =>
-      (employeesData?.data ?? EMPTY_COLLABORATORS)
+      (employeesData?.data ?? EMPTY_EMPLOYEES)
         .map((employee) => employee.name)
         .sort((a, b) => a.localeCompare(b)),
     [employeesData],
@@ -133,14 +171,19 @@ export function FinanceDashboard() {
     setPage(1)
   }
 
-  // Aprovar/rejeitar um pedido a partir da própria linha da tabela.
-  // O stopPropagation evita que o clique no botão também abra o modal de detalhe.
-  async function decide(id: number, status: PaymentStatus, e: React.MouseEvent) {
+  function promptDecision(
+    payment: PaymentRequest,
+    status: PaymentDecision,
+    e: React.MouseEvent,
+  ) {
     e.stopPropagation()
+    setDecisionContext({ payment, decision: status })
+  }
+
+  async function confirmDecision(id: number, status: PaymentDecision) {
     await decidePayment(id, status)
-    // Depois de decidir, revalido a página atual e os totais dos cartões
-    // ao mesmo tempo — assim o badge e as contagens batem certo logo a seguir.
     await Promise.all([mutateList(), mutateSummary()])
+    setDecisionContext(null)
   }
 
   // Abre o modal com os detalhes completos do pedido clicado.
@@ -176,6 +219,7 @@ export function FinanceDashboard() {
         <StatCard
           label={t("finance.approvedEur")}
           value={summary ? formatCurrency(summary.approved_eur, "EUR") : "—"}
+          highlight
         />
       </div>
 
@@ -208,9 +252,9 @@ export function FinanceDashboard() {
                     aria-pressed={active}
                     onClick={() => changeFilter(f)}
                     className={cn(
-                      "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                      "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                       active
-                        ? "border-foreground bg-foreground text-background"
+                        ? "border-foreground bg-foreground text-background dark:border-white/20 dark:bg-white/10 dark:text-foreground"
                         : "border-border bg-card text-foreground hover:bg-muted",
                     )}
                   >
@@ -222,7 +266,7 @@ export function FinanceDashboard() {
                     <span
                       className={cn(
                         "rounded-full px-1.5 text-xs tabular-nums",
-                        active ? "bg-background/20 text-background" : "bg-muted text-muted-foreground",
+                        active ? "bg-background/20 text-background dark:bg-white/10 dark:text-foreground" : "bg-muted text-muted-foreground",
                       )}
                     >
                       {counts[f]}
@@ -268,7 +312,7 @@ export function FinanceDashboard() {
                     changeCollaborator("")
                     setShowSuggestions(false)
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   <X className="size-3.5" />
                 </button>
@@ -306,170 +350,176 @@ export function FinanceDashboard() {
           ) : (
             <>
               <div className={cn(busy && "opacity-60 transition-opacity")}>
-                {/* Mobile: card list */}
-                <ul className="space-y-3 px-4 sm:hidden">
-                  {rows.map((p) => (
-                    <li key={p.id}>
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => openDetail(p)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault()
-                            openDetail(p)
-                          }
-                        }}
-                        className="w-full cursor-pointer rounded-xl border border-border bg-card p-4 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring active:bg-muted/60"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate font-medium text-foreground">{p.user_name}</p>
-                            <p className="font-mono text-xs text-muted-foreground">
-                              {p.reference}
-                            </p>
-                          </div>
-                          <StatusBadge status={p.status} />
-                        </div>
-
-                        <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3">
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                              {t("table.countryCurrency")}
-                            </p>
-                            <p className="text-sm text-foreground">
-                              {p.country} · {p.currency}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                              {t("table.localAmount")}
-                            </p>
-                            <p className="text-sm tabular-nums text-foreground">
-                              {formatCurrency(p.local_amount, p.currency)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                              {t("table.rate")}
-                            </p>
-                            <p className="font-mono text-sm tabular-nums text-muted-foreground">
-                              {p.exchange_rate}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                              {t("table.eurTotal")}
-                            </p>
-                            <p className="text-sm font-medium tabular-nums text-foreground">
-                              {formatCurrency(p.eur_amount, "EUR")}
-                            </p>
-                          </div>
-                        </div>
-
-                        {p.status === "pending" && (
-                          <div className="mt-3 flex gap-2 border-t border-border pt-3">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="flex-1 gap-1.5 border-status-approved-border bg-status-approved-bg text-status-approved-fg hover:bg-status-approved-bg/70"
-                              onClick={(e) => decide(p.id, "approved", e)}
-                            >
-                              <Check className="size-4" />
-                              {t("action.approve")}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="flex-1 gap-1.5 border-status-rejected-border bg-status-rejected-bg text-status-rejected-fg hover:bg-status-rejected-bg/70"
-                              onClick={(e) => decide(p.id, "rejected", e)}
-                            >
-                              <X className="size-4" />
-                              {t("action.reject")}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-
-                {/* Desktop: table */}
-                <div className="hidden overflow-x-auto sm:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("table.user")}</TableHead>
-                        <TableHead>{t("table.countryCurrency")}</TableHead>
-                        <TableHead className="text-right">{t("table.localAmount")}</TableHead>
-                        <TableHead className="text-right">{t("table.rate")}</TableHead>
-                        <TableHead className="text-right">{t("table.eurTotal")}</TableHead>
-                        <TableHead>{t("table.status")}</TableHead>
-                        <TableHead className="text-right">{t("table.actions")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                <ResponsiveTableLayout
+                  measureKey={`${rows.length}-${locale}-${page}-${filter}`}
+                  cards={
+                    <ul className="space-y-3 px-4">
                       {rows.map((p) => (
-                        <TableRow
-                          key={p.id}
-                          // Zebra nas pares + hover com leve tom de marca. O hover
-                          // cinza padrão (bg-muted/50) ficava quase invisível por cima
-                          // da zebra, por isso forço um realce azul distinto.
-                          className="cursor-pointer even:bg-muted/40 hover:bg-primary/10 dark:hover:bg-primary/15"
-                          onClick={() => openDetail(p)}
-                        >
-                          <TableCell>
-                            <div className="font-medium text-foreground">{p.user_name}</div>
-                            <div className="font-mono text-xs text-muted-foreground">
-                              {p.reference}
+                        <li key={p.id}>
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => openDetail(p)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault()
+                                openDetail(p)
+                              }
+                            }}
+                            className="w-full cursor-pointer rounded-lg border border-border bg-card p-4 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:bg-muted/60"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-xs text-muted-foreground">
+                                  {formatDateTime(p.created_at, locale)}
+                                </p>
+                                <p className="truncate font-medium text-foreground">{p.user_name}</p>
+                                <p className="font-mono text-xs text-muted-foreground">
+                                  {p.reference}
+                                </p>
+                              </div>
+                              <StatusBadge status={p.status} />
                             </div>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-muted-foreground">
-                            {p.country} · {p.currency}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {formatCurrency(p.local_amount, p.currency)}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-xs text-muted-foreground tabular-nums">
-                            {p.exchange_rate}
-                          </TableCell>
-                          <TableCell className="text-right font-medium tabular-nums">
-                            {formatCurrency(p.eur_amount, "EUR")}
-                          </TableCell>
-                          <TableCell>
-                            <StatusBadge status={p.status} />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {p.status === "pending" ? (
-                              <div className="flex justify-end gap-1">
+
+                            <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3">
+                              <div>
+                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                  {t("table.countryCurrency")}
+                                </p>
+                                <p className="text-sm text-foreground">
+                                  {p.country} · {p.currency}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                  {t("table.localAmount")}
+                                </p>
+                                <p className="font-mono text-sm tabular-nums text-foreground">
+                                  {formatCurrency(p.local_amount, p.currency)}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                  {t("table.rate")}
+                                </p>
+                                <p className="font-mono text-sm tabular-nums text-muted-foreground">
+                                  {p.exchange_rate}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                  {t("table.eurTotal")}
+                                </p>
+                                <p className="font-mono text-sm font-medium tabular-nums text-foreground">
+                                  {formatCurrency(p.eur_amount, "EUR")}
+                                </p>
+                              </div>
+                            </div>
+
+                            {p.status === "pending" && (
+                              <div className="mt-3 flex gap-2 border-t border-border pt-3">
                                 <Button
-                                  size="icon"
+                                  size="sm"
                                   variant="outline"
-                                  aria-label={t("action.approve")}
-                                  className="size-8 border-status-approved-border bg-status-approved-bg text-status-approved-fg hover:bg-status-approved-bg/70"
-                                  onClick={(e) => decide(p.id, "approved", e)}
+                                  className={cn("flex-1 gap-1.5", APPROVE_BUTTON_CLASS)}
+                                  onClick={(e) => promptDecision(p, "approved", e)}
                                 >
                                   <Check className="size-4" />
+                                  {t("action.approve")}
                                 </Button>
                                 <Button
-                                  size="icon"
+                                  size="sm"
                                   variant="outline"
-                                  aria-label={t("action.reject")}
-                                  className="size-8 border-status-rejected-border bg-status-rejected-bg text-status-rejected-fg hover:bg-status-rejected-bg/70"
-                                  onClick={(e) => decide(p.id, "rejected", e)}
+                                  className={cn("flex-1 gap-1.5", REJECT_BUTTON_CLASS)}
+                                  onClick={(e) => promptDecision(p, "rejected", e)}
                                 >
                                   <X className="size-4" />
+                                  {t("action.reject")}
                                 </Button>
                               </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
                             )}
-                          </TableCell>
-                        </TableRow>
+                          </div>
+                        </li>
                       ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                    </ul>
+                  }
+                  table={
+                    <Table scrollable={false}>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t("table.date")}</TableHead>
+                          <TableHead>{t("table.user")}</TableHead>
+                          <TableHead>{t("table.countryCurrency")}</TableHead>
+                          <TableHead className="text-right">{t("table.localAmount")}</TableHead>
+                          <TableHead className="text-right">{t("table.rate")}</TableHead>
+                          <TableHead className="text-right">{t("table.eurTotal")}</TableHead>
+                          <TableHead>{t("table.status")}</TableHead>
+                          <TableHead className="text-right">{t("table.actions")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.map((p) => (
+                          <TableRow
+                            key={p.id}
+                            className={TABLE_ROW_CLASS}
+                            onClick={() => openDetail(p)}
+                          >
+                            <TableCell className="whitespace-nowrap text-muted-foreground">
+                              {formatDateTime(p.created_at, locale)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium text-foreground">{p.user_name}</div>
+                              <div className="font-mono text-xs text-muted-foreground">
+                                {p.reference}
+                              </div>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-muted-foreground">
+                              {p.country} · {p.currency}
+                            </TableCell>
+                            <TableCell className="text-right font-mono tabular-nums">
+                              {formatCurrency(p.local_amount, p.currency)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-xs text-muted-foreground tabular-nums">
+                              {p.exchange_rate}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-medium tabular-nums">
+                              {formatCurrency(p.eur_amount, "EUR")}
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={p.status} />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {p.status === "pending" ? (
+                                <div className="flex justify-end gap-1">
+                                  <Button
+                                    size="icon-lg"
+                                    variant="outline"
+                                    aria-label={t("action.approve")}
+                                    className={APPROVE_BUTTON_CLASS}
+                                    onClick={(e) => promptDecision(p, "approved", e)}
+                                  >
+                                    <Check className="size-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon-lg"
+                                    variant="outline"
+                                    aria-label={t("action.reject")}
+                                    className={REJECT_BUTTON_CLASS}
+                                    onClick={(e) => promptDecision(p, "rejected", e)}
+                                  >
+                                    <X className="size-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  }
+                />
               </div>
 
               {pageData && (
@@ -485,6 +535,16 @@ export function FinanceDashboard() {
       </Card>
 
       <PaymentDetailDialog payment={selected} open={open} onOpenChange={setOpen} />
+
+      <PaymentDecisionDialog
+        payment={decisionContext?.payment ?? null}
+        decision={decisionContext?.decision ?? null}
+        open={decisionContext !== null}
+        onOpenChange={(next) => {
+          if (!next) setDecisionContext(null)
+        }}
+        onConfirm={confirmDecision}
+      />
     </div>
   )
 }

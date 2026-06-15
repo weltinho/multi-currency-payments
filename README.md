@@ -15,7 +15,7 @@ Browser (:8080)
             └── /docs       → backend (Scramble docs)
     └── database (MySQL)
     └── redis
-    └── scheduler (Laravel schedule:work — 48h expiration planned)
+    └── scheduler (runs payments:expire-pending every minute via schedule:work)
 ```
 
 ## Prerequisites
@@ -66,9 +66,38 @@ The `backend` container bootstraps the API:
 3. `php artisan migrate --force`
 4. `php artisan db:ensure-seeded` (demo users when the database is empty)
 
-The `scheduler` container waits for `vendor/` and then runs `php artisan schedule:work`.
+The `scheduler` container waits for the database, then runs `php artisan schedule:work`, which expires pending payments older than 48 hours every minute.
 
 **You do not need** to run `key:generate` or `migrate --seed` manually for a normal Docker setup.
+
+## Payment expiration (48h)
+
+Pending requests that finance does not approve or reject within **48 hours** are marked `expired` automatically.
+
+### How it works
+
+1. The `scheduler` container runs `php artisan schedule:work`.
+2. Every minute it runs `php artisan payments:expire-pending`.
+3. That command updates all `pending` rows whose `created_at` is older than 48 hours to `expired`.
+
+Demo seed data includes one pending payment per employee at **47h55m** so reviewers can see expirations within a few minutes of `docker compose up`, without waiting two days.
+
+### Why a scheduled command instead of a queued Job?
+I considered dispatching a delayed `ExpirePaymentJob` when each payment is created (`->delay(48 hours)`). We chose a **scheduled Artisan command** that scans the database instead:
+
+| | Scheduled command (what we built) | Delayed Job per payment |
+|---|---|---|
+| **Fits the rule** | “Expire everything pending older than 48h” is naturally a batch query | Better when each payment needs its own exact expiry moment |
+| **Docker setup** | Only needs the existing `scheduler` container | Would also need a `queue:work` process always running |
+| **Resilience** | If the scheduler is down for a while, the next run catches all overdue rows | Depends on Redis, worker uptime, and job retries |
+| **Seeded / backfilled data** | Works immediately for old `created_at` values | Only expires payments that had a job dispatched at create time |
+| **Changing the window** | Update `PAYMENT_PENDING_EXPIRATION_HOURS` — next run uses the new cutoff | Already-queued jobs keep their old delay |
+
+For this test project the rule is simple, the volume is small, and we wanted reviewers to run `docker compose up` without extra moving parts. A command plus scheduler is the usual Laravel pattern for this kind of housekeeping.
+
+If we later needed per-payment notifications at the exact expiry second, we could add Jobs on top — or run the command less often (e.g. hourly) in production.
+
+Configuration: `config/payments.php` / `PAYMENT_PENDING_EXPIRATION_HOURS` in `backend/.env`.
 
 ### Optional setup script
 
@@ -108,9 +137,16 @@ docker compose restart backend scheduler
 
 ## Running tests
 
+PHPUnit uses a **separate MySQL database** (`payments_test`), not the demo `payments` database. `RefreshDatabase` can safely run `migrate:fresh` during tests without wiping seeded users or payments.
+
 ```bash
+./scripts/test.sh
+# or
+docker compose exec backend php artisan db:ensure-test-database
 docker compose exec backend php artisan test
 ```
+
+On first boot, the entrypoint creates `payments_test` automatically. If you already had a Docker volume before this was added, run `db:ensure-test-database` once (or recreate the volume with `docker compose down -v && docker compose up -d`).
 
 ## Project structure
 

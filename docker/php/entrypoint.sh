@@ -38,9 +38,25 @@ wait_for_database() {
   echo "Waiting for database connection..."
   attempts=0
   while [ $attempts -lt 60 ]; do
-    # db:show only checks connectivity — migrate:status fails on a fresh DB
-    # because the migrations table does not exist yet.
-    if php artisan db:show >/dev/null 2>&1; then
+    # PDO ping only — db:show can exit 1 when intl is missing even if MySQL is up.
+    if php -r '
+      $host = getenv("DB_HOST") ?: "127.0.0.1";
+      $port = getenv("DB_PORT") ?: "3306";
+      $db = getenv("DB_DATABASE") ?: "payments";
+      $user = getenv("DB_USERNAME") ?: "payments";
+      $pass = getenv("DB_PASSWORD") ?: "secret";
+      try {
+        new PDO(
+          "mysql:host={$host};port={$port};dbname={$db}",
+          $user,
+          $pass,
+          [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+        exit(0);
+      } catch (Throwable $e) {
+        exit(1);
+      }
+    ' >/dev/null 2>&1; then
       echo "Database connection ready."
       return 0
     fi
@@ -99,8 +115,12 @@ if [ "${APP_BOOTSTRAP:-false}" = "true" ]; then
 
   echo "Ensuring demo data is seeded..."
   php artisan db:ensure-seeded --no-interaction
+
+  echo "Ensuring test database exists..."
+  php artisan db:ensure-test-database --no-interaction
 else
   wait_for_vendor
+  wait_for_database
 fi
 
 exec "$@"

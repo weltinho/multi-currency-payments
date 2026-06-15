@@ -2,11 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Support\SupportedCurrencies;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
- * Employee payment creation. Only accepts amount + description —
- * currency and exchange rate are resolved server-side from the user profile.
+ * Employee payment creation. Amount + description required; currency optional
+ * (defaults to the employee profile currency when omitted).
  */
 class StorePaymentRequest extends FormRequest
 {
@@ -23,6 +25,7 @@ class StorePaymentRequest extends FormRequest
         return [
             'description' => ['required', 'string', 'max:1000'],
             'local_amount' => ['required', 'numeric', 'min:0.01'],
+            'currency' => ['sometimes', 'string', 'size:3', Rule::in(SupportedCurrencies::codes())],
         ];
     }
 }

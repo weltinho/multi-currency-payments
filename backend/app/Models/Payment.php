@@ -78,6 +78,7 @@ class Payment extends Model
             'eur_amount' => (float) $this->eur_amount,
             'status' => $this->status->value,
             'created_at' => $this->created_at->toIso8601String(),
+            'updated_at' => $this->updated_at->toIso8601String(),
             'reviewed_at' => $this->reviewed_at?->toIso8601String(),
             'rate_source' => $this->rate_source,
             'description' => $this->description,

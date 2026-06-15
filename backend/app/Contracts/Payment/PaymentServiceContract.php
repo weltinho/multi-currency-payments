@@ -33,4 +33,9 @@ interface PaymentServiceContract
      * @return array<string, mixed>
      */
     public function show(User $user, string $id): array;
+
+    /**
+     * Pending requests older than the configured window → expired. Used by the scheduler.
+     */
+    public function expireStalePending(): int;
 }

@@ -14,7 +14,7 @@ Short guide to intentional design choices. Start here, then follow the file-leve
 
 - **Laravel Sanctum** cookie SPA (same-origin via Nginx), not Passport — fits the Next.js frontend without storing tokens in JavaScript.
 - **Login / logout** only for end users. There is no public self-registration.
-- **Registration** is implemented as **finance-provisioned employee accounts** (`POST /api/employees`). Finance creates employee users; initial password is the employee's **full name**; `must_change_password` forces a password update on first login (`PUT /api/password`).
+- **Registration** is implemented as **finance-provisioned employee accounts** (`POST /api/employees`). Finance creates employee users; initial password is the employee's **first name**; `must_change_password` forces a password update on first login (`PUT /api/password`).
 - Demo credentials: `finance@buzzvel.com` / `123456` (all seeded users share `123456`). `GET /api/test-users` lists them for the login modal.
 
 ## Payments & exchange rates
@@ -32,12 +32,16 @@ Short guide to intentional design choices. Start here, then follow the file-leve
 ## Demo data
 
 - `UserSeeder`: 3 finance + 20 employees across countries/currencies.
-- `PaymentSeeder`: sample payment requests linked by email.
+- `PaymentSeeder`: at least one pending request per employee, timestamped **47h55m** ago so the scheduler expires them shortly after `docker compose up`. Extra showcase rows cover other statuses.
 - Docker entrypoint runs `migrate` + `db:ensure-seeded` when the database has no users.
 
-## Still planned (not in this commit)
+## Payment expiration (48h)
 
-- Scheduled command to expire pending requests after 48 hours (Phase 3).
+- Pending requests older than **48 hours** are marked `expired` by `php artisan payments:expire-pending`.
+- Registered in `routes/console.php` to run **every minute**; the `scheduler` container runs `php artisan schedule:work` (no host cron).
+- Window is configurable via `PAYMENT_PENDING_EXPIRATION_HOURS` / `config/payments.php`.
+- Expiration does **not** set `reviewed_at` — finance never acted on these.
+- **Why command, not Job?** See root [README.md](../README.md#payment-expiration-48h) — batch sweeper fits the global 48h rule and keeps Docker simple (no dedicated queue worker).
 
 ## Tests
 
@@ -45,4 +49,6 @@ Short guide to intentional design choices. Start here, then follow the file-leve
 docker compose exec backend php artisan test
 ```
 
-Feature tests cover auth, employee registration, payment create/approve, and locale. Unit tests mock contracts for `PaymentService`, `AuthService`, `EmployeeService`, and `ExchangeRateService`.
+Feature tests use `RefreshDatabase` against **`payments_test`** only (see `phpunit.xml`). The demo database is `payments`.
+
+Feature tests cover auth, employee registration, payment create/approve, expiration, and locale. Unit tests mock contracts for `PaymentService`, `AuthService`, `EmployeeService`, and `ExchangeRateService`.

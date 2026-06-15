@@ -44,7 +44,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // caso, devolve a própria chave. O vars permite interpolar {placeholders}.
   const t = useCallback(
     (key: TranslationKey, vars?: Record<string, string | number>) => {
-      let text: string = translations[language][key] ?? translations.en[key] ?? key
+      const locale = translations[language] as Partial<(typeof translations)["en"]>
+      let text: string = locale[key] ?? translations.en[key] ?? key
       if (vars) {
         for (const [k, v] of Object.entries(vars)) {
           text = text.replace(new RegExp(`\\{${k}\\}`, "g"), String(v))
