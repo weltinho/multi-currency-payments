@@ -4,8 +4,8 @@
 # Internal DNS: webserver, frontend, backend, database, redis, scheduler
 #
 # Startup order (depends_on):
-#   database, redis → backend → frontend (build + HTTP ready) → webserver
-#   scheduler runs in parallel after backend
+#   database, redis → backend (bootstrap: composer, migrate, seed) → frontend → webserver
+#   scheduler waits for vendor/ via entrypoint, then runs schedule:work
 #
 # Quick start:
 #   docker compose down --remove-orphans -v
@@ -89,6 +89,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
+      APP_BOOTSTRAP: "true"
       DB_HOST: database
       REDIS_HOST: redis
     depends_on:

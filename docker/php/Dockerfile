@@ -27,7 +27,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Entrypoint: runs `composer install` if vendor/ is missing, then starts php-fpm
+# Entrypoint: bootstrap (composer, migrate, seed) when APP_BOOTSTRAP=true; otherwise waits for vendor/
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

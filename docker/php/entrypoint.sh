@@ -1,30 +1,86 @@
 #!/bin/sh
 # Laravel API entrypoint — runs before php-fpm (or any overridden command).
 #
-# 1. Installs Composer dependencies if vendor/ is missing or outdated.
-# 2. Generates APP_KEY if .env exists but the key is empty.
-# 3. Runs migrations and seeds demo users when the database is empty.
-# 4. Hands off to the CMD (default: php-fpm).
+# Bootstrap (APP_BOOTSTRAP=true, backend only):
+#   1. Installs Composer dependencies if vendor/ is missing (with a file lock).
+#   2. Generates APP_KEY if .env exists but the key is empty.
+#   3. Runs migrations and seeds demo users when the database is empty.
+#
+# Non-bootstrap (scheduler): waits for vendor/autoload.php, then hands off to CMD.
+# Both services share ./backend on the host — only one process may run composer install.
 
 set -e
 
 cd /var/www/html
 
-if [ ! -f vendor/autoload.php ]; then
+LOCK_DIR="/var/www/html/storage/framework/.composer-install.lock"
+VENDOR_READY="/var/www/html/vendor/autoload.php"
+
+wait_for_vendor() {
+  if [ -f "$VENDOR_READY" ]; then
+    return 0
+  fi
+
+  echo "Waiting for Composer dependencies (bootstrap runs in backend)..."
+  attempts=0
+  while [ ! -f "$VENDOR_READY" ]; do
+    attempts=$((attempts + 1))
+    if [ "$attempts" -gt 120 ]; then
+      echo "Timed out waiting for vendor/autoload.php after 4 minutes."
+      exit 1
+    fi
+    sleep 2
+  done
+  echo "Composer dependencies ready."
+}
+
+composer_install() {
+  if [ -f "$VENDOR_READY" ]; then
+    echo "Composer dependencies already installed."
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$LOCK_DIR")"
+
+  echo "Acquiring Composer install lock..."
+  while ! mkdir "$LOCK_DIR" 2>/dev/null; do
+    if [ -f "$VENDOR_READY" ]; then
+      echo "Composer dependencies installed by another process."
+      return 0
+    fi
+    sleep 2
+  done
+
+  trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT INT TERM
+
+  if [ -f "$VENDOR_READY" ]; then
+    rmdir "$LOCK_DIR" 2>/dev/null || true
+    trap - EXIT INT TERM
+    echo "Composer dependencies already installed."
+    return 0
+  fi
+
   echo "Installing Composer dependencies..."
   composer install --no-interaction --prefer-dist --optimize-autoloader
+
+  rmdir "$LOCK_DIR" 2>/dev/null || true
+  trap - EXIT INT TERM
+}
+
+if [ "${APP_BOOTSTRAP:-false}" = "true" ]; then
+  composer_install
+
+  if [ -f .env ] && grep -q "APP_KEY=$" .env 2>/dev/null; then
+    php artisan key:generate --force
+  fi
+
+  echo "Running migrations..."
+  php artisan migrate --force
+
+  echo "Ensuring demo data is seeded..."
+  php artisan db:ensure-seeded --no-interaction
 else
-  echo "Composer dependencies already installed."
+  wait_for_vendor
 fi
-
-if [ -f .env ] && grep -q "APP_KEY=$" .env 2>/dev/null; then
-  php artisan key:generate --force
-fi
-
-echo "Running migrations..."
-php artisan migrate --force
-
-echo "Ensuring demo data is seeded..."
-php artisan db:ensure-seeded --no-interaction
 
 exec "$@"
