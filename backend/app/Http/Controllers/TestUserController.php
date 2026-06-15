@@ -11,7 +11,7 @@ use Illuminate\Http\JsonResponse;
 /**
  * Public endpoint for the login-screen "test users" modal.
  */
-#[Group('Demo only', description: 'Evaluator helpers — seeded credentials. Not for production.', weight: 11)]
+#[Group('Public', description: 'Unauthenticated endpoints — health, login, and demo test-users.', weight: 10)]
 class TestUserController extends Controller
 {
     public function __construct(private TestUserServiceContract $testUsers) {}

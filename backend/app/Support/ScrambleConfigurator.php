@@ -67,14 +67,13 @@ final class ScrambleConfigurator
         2. **Public → auth.login** — body `{"email":"finance@buzzvel.com","password":"123456"}` (or any seeded employee). Send → **200**. Session cookie is stored automatically.
         3. **Protected endpoint** — e.g. **Employee → payment.store** as `rafael@buzzvel.com` / `123456` with `{"description":"…","local_amount":4200,"currency":"BRL"}`.
 
-        Seeded emails: **Demo only → testUser.index**. UI: [{$appUrl}]({$appUrl}).
+        Seeded emails: **Public → DEMO ONLY — List seeded demo accounts**. UI: [{$appUrl}]({$appUrl}).
 
         ### Roles
 
         | Group | Who | Capabilities |
         |-------|-----|--------------|
-        | **Public** | Everyone | CSRF cookie, health, login |
-        | **Demo only** | Evaluators | Seeded test-user emails — **not for production** |
+        | **Public** | Everyone | CSRF cookie, health, login, demo test-users |
         | **Auth** | Logged-in users | Session user, logout, password change |
         | **Finance** | `finance@buzzvel.com` | List/approve/reject payments, register employees |
         | **Employee** | e.g. `rafael@buzzvel.com` | Create and track own payment requests |

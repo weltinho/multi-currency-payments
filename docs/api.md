@@ -76,15 +76,36 @@ GET /api/user
 
 ```json
 {
-  "id": "uuid",
+  "id": "01932a1b-2c3d-7000-8000-000000000001",
   "name": "Helena Marques",
   "email": "finance@buzzvel.com",
   "role": "finance",
   "country": "Portugal",
   "country_code": "PT",
-  "currency": "EUR"
+  "currency": "EUR",
+  "must_change_password": false
 }
 ```
+
+---
+
+### Change password
+
+```
+PUT /api/password
+```
+
+**Request body:**
+
+```json
+{
+  "current_password": "123456",
+  "password": "654321",
+  "password_confirmation": "654321"
+}
+```
+
+**Response `200`:** Updated user object (same shape as `GET /api/user`).
 
 ---
 
@@ -95,6 +116,121 @@ POST /api/logout
 ```
 
 **Response `204`:** No content.
+
+---
+
+## Demo test users (demo only)
+
+```
+GET /api/test-users
+```
+
+**Authorization:** None (public, for evaluators only).
+
+**Response `200`:**
+
+```json
+{
+  "finance": [
+    {
+      "name": "Helena Marques",
+      "email": "finance@buzzvel.com",
+      "country": "Portugal",
+      "currency": "EUR"
+    }
+  ],
+  "employees": [
+    {
+      "name": "Rafael Silva",
+      "email": "rafael@buzzvel.com",
+      "country": "Brazil",
+      "currency": "BRL"
+    }
+  ]
+}
+```
+
+---
+
+## Employees (finance only)
+
+### List employees
+
+```
+GET /api/employees
+```
+
+**Response `200`:**
+
+```json
+{
+  "data": [
+    {
+      "id": "01932a1b-2c3d-7000-8000-000000000010",
+      "name": "Rafael Silva",
+      "email": "rafael@buzzvel.com",
+      "country": "Brazil",
+      "country_code": "BR",
+      "currency": "BRL"
+    }
+  ]
+}
+```
+
+---
+
+### Create employee
+
+```
+POST /api/employees
+```
+
+**Request body:**
+
+```json
+{
+  "name": "Jordan Lee",
+  "email": "jordan.lee@buzzvel.com",
+  "country_code": "US"
+}
+```
+
+**Response `201`:**
+
+```json
+{
+  "id": "01932a1b-2c3d-7000-8000-000000000099",
+  "name": "Jordan Lee",
+  "email": "jordan.lee@buzzvel.com",
+  "role": "employee",
+  "country": "United States",
+  "country_code": "US",
+  "currency": "USD",
+  "must_change_password": true
+}
+```
+
+---
+
+### List employee countries
+
+```
+GET /api/employee-countries
+```
+
+**Response `200`:**
+
+```json
+{
+  "data": [
+    {
+      "code": "BR",
+      "name": "Brazil",
+      "currency": "BRL"
+    }
+  ]
+}
+```
 
 ---
 
@@ -122,28 +258,29 @@ GET /api/payments
 {
   "data": [
     {
-      "id": "uuid",
-      "reference": "PAY-2026-1001",
-      "user_id": "uuid",
-      "user_name": "Rafael Souza",
+      "id": "01932a1b-2c3d-7000-8000-000000000501",
+      "reference": "PAY-2026-1007",
+      "user_id": "01932a1b-2c3d-7000-8000-000000000010",
+      "user_name": "Rafael Silva",
       "country": "Brazil",
       "currency": "BRL",
       "local_amount": 4200,
       "exchange_rate": 6.21,
       "eur_amount": 676.33,
       "status": "pending",
-      "created_at": "2026-06-12T09:24:00Z",
+      "created_at": "2026-06-15T08:00:00+00:00",
+      "updated_at": "2026-06-15T08:00:00+00:00",
       "reviewed_at": null,
       "rate_source": "exchangerate-api.com",
-      "description": "Equipment reimbursement"
+      "description": "Equipment reimbursement — monitor and peripherals"
     }
   ],
   "current_page": 1,
-  "last_page": 3,
+  "last_page": 1,
   "per_page": 8,
-  "total": 22,
+  "total": 1,
   "from": 1,
-  "to": 8
+  "to": 1
 }
 ```
 
@@ -165,14 +302,14 @@ GET /api/payments/summary
 
 ```json
 {
-  "total": 22,
-  "pending": 8,
-  "approved_eur": 12500.50,
+  "total": 12,
+  "pending": 4,
+  "approved_eur": 1842.59,
   "status_counts": {
-    "all": 22,
-    "pending": 8,
-    "approved": 10,
-    "rejected": 2,
+    "all": 12,
+    "pending": 4,
+    "approved": 5,
+    "rejected": 1,
     "expired": 2
   }
 }
@@ -192,13 +329,33 @@ POST /api/payments
 
 ```json
 {
+  "description": "Equipment reimbursement — monitor and peripherals",
   "local_amount": 4200,
-  "currency": "BRL",
-  "description": "Equipment reimbursement"
+  "currency": "BRL"
 }
 ```
 
-**Response `201`:** Payment object with exchange rate locked at creation time.
+**Response `201`:**
+
+```json
+{
+  "id": "01932a1b-2c3d-7000-8000-000000000501",
+  "reference": "PAY-2026-1007",
+  "user_id": "01932a1b-2c3d-7000-8000-000000000010",
+  "user_name": "Rafael Silva",
+  "country": "Brazil",
+  "currency": "BRL",
+  "local_amount": 4200,
+  "exchange_rate": 6.21,
+  "eur_amount": 676.33,
+  "status": "pending",
+  "created_at": "2026-06-15T08:00:00+00:00",
+  "updated_at": "2026-06-15T08:00:00+00:00",
+  "reviewed_at": null,
+  "rate_source": "exchangerate-api.com",
+  "description": "Equipment reimbursement — monitor and peripherals"
+}
+```
 
 **Response `422`:** Validation errors.
 
@@ -210,7 +367,27 @@ POST /api/payments
 GET /api/payments/{id}
 ```
 
-**Response `200`:** Single payment object.
+**Response `200`:**
+
+```json
+{
+  "id": "01932a1b-2c3d-7000-8000-000000000501",
+  "reference": "PAY-2026-1007",
+  "user_id": "01932a1b-2c3d-7000-8000-000000000010",
+  "user_name": "Rafael Silva",
+  "country": "Brazil",
+  "currency": "BRL",
+  "local_amount": 4200,
+  "exchange_rate": 6.21,
+  "eur_amount": 676.33,
+  "status": "pending",
+  "created_at": "2026-06-15T08:00:00+00:00",
+  "updated_at": "2026-06-15T08:00:00+00:00",
+  "reviewed_at": null,
+  "rate_source": "exchangerate-api.com",
+  "description": "Equipment reimbursement — monitor and peripherals"
+}
+```
 
 **Response `403`:** Employee accessing another user's payment.
 
@@ -236,7 +413,27 @@ PATCH /api/payments/{id}
 
 Allowed values: `approved`, `rejected`.
 
-**Response `200`:** Updated payment object.
+**Response `200`:**
+
+```json
+{
+  "id": "01932a1b-2c3d-7000-8000-000000000501",
+  "reference": "PAY-2026-1007",
+  "user_id": "01932a1b-2c3d-7000-8000-000000000010",
+  "user_name": "Rafael Silva",
+  "country": "Brazil",
+  "currency": "BRL",
+  "local_amount": 4200,
+  "exchange_rate": 6.21,
+  "eur_amount": 676.33,
+  "status": "approved",
+  "created_at": "2026-06-15T08:00:00+00:00",
+  "updated_at": "2026-06-15T12:00:00+00:00",
+  "reviewed_at": "2026-06-15T12:00:00+00:00",
+  "rate_source": "exchangerate-api.com",
+  "description": "Equipment reimbursement — monitor and peripherals"
+}
+```
 
 **Response `409`:** Payment is not in `pending` status.
 

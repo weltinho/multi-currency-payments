@@ -32,6 +32,7 @@ class AuthController extends Controller
     #[BodyParameter('email', type: 'string', format: 'email', example: 'finance@buzzvel.com')]
     #[BodyParameter('password', type: 'string', example: '123456')]
     #[Response(200, type: MessageResponse::class, examples: [['message' => 'Authenticated']])]
+    #[Response(422, examples: [['message' => 'The given data was invalid.', 'errors' => ['email' => ['The email field is required.']]]])]
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([

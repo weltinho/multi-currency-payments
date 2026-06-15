@@ -17,7 +17,7 @@ final class DemoTestUsersOperationExtension extends OperationExtension
         }
 
         $operation
-            ->summary('List seeded demo accounts (demo only)')
+            ->summary('DEMO ONLY — List seeded demo accounts')
             ->description(
                 '**Demo only — not for production.** '
                 . 'Returns finance and employee emails for evaluator login (same data as the login-screen test-users modal). '
