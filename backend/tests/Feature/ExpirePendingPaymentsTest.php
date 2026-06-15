@@ -9,13 +9,15 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** End-to-end check for the 48h pending → expired scheduled command. */
+/** End-to-end check for pending → expired scheduled command (window from config). */
 class ExpirePendingPaymentsTest extends TestCase
 {
     use RefreshDatabase;
 
     public function test_command_expires_only_stale_pending_payments(): void
     {
+        $hours = (int) config('payments.pending_expiration_hours', 48);
+
         $employee = User::create([
             'name' => 'Test Employee',
             'email' => 'expire.test@buzzvel.com',
@@ -27,13 +29,14 @@ class ExpirePendingPaymentsTest extends TestCase
         ]);
 
         $stale = Payment::query()->create($this->paymentAttributes($employee->id, PaymentStatus::Pending));
-        $stale->forceFill(['created_at' => now()->subHours(49), 'updated_at' => now()->subHours(49)])->saveQuietly();
+        $stale->forceFill(['created_at' => now()->subHours($hours + 1), 'updated_at' => now()->subHours($hours + 1)])->saveQuietly();
 
         $fresh = Payment::query()->create($this->paymentAttributes($employee->id, PaymentStatus::Pending));
-        $fresh->forceFill(['created_at' => now()->subHours(2), 'updated_at' => now()->subHours(2)])->saveQuietly();
+        $freshAge = $hours > 2 ? now()->subHours(2) : now()->subMinutes(max(1, (int) ($hours * 30)));
+        $fresh->forceFill(['created_at' => $freshAge, 'updated_at' => $freshAge])->saveQuietly();
 
         $approved = Payment::query()->create($this->paymentAttributes($employee->id, PaymentStatus::Approved));
-        $approved->forceFill(['created_at' => now()->subHours(72), 'updated_at' => now()->subHours(72)])->saveQuietly();
+        $approved->forceFill(['created_at' => now()->subHours($hours + 24), 'updated_at' => now()->subHours($hours + 24)])->saveQuietly();
 
         $this->artisan('payments:expire-pending')
             ->expectsOutputToContain('Expired 1 pending payment')
@@ -47,8 +50,10 @@ class ExpirePendingPaymentsTest extends TestCase
 
     public function test_command_reports_when_nothing_to_expire(): void
     {
+        $hours = (int) config('payments.pending_expiration_hours', 48);
+
         $this->artisan('payments:expire-pending')
-            ->expectsOutputToContain('No pending payments older than 48 hours')
+            ->expectsOutputToContain("No pending payments older than {$hours} hours")
             ->assertSuccessful();
     }
 

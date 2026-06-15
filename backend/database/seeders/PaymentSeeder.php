@@ -47,14 +47,15 @@ class PaymentSeeder extends Seeder
             return;
         }
 
-        // Just under 48h — scheduler will expire these shortly after boot.
-        $almostExpiredAt = Carbon::now()->subHours(47)->subMinutes(55);
+        // Just under the configured window — scheduler will expire these shortly after boot.
+        $expirationHours = (int) config('payments.pending_expiration_hours', 48);
+        $almostExpiredAt = Carbon::now()->subHours($expirationHours)->addMinutes(5);
         $sequence = 1001;
 
         foreach ($employees as $employee) {
             $this->seedPayment($employee, [
                 'reference' => sprintf('PAY-2026-%04d', $sequence++),
-                'description' => 'Pending reimbursement — nearing 48h expiration (demo)',
+                'description' => 'Pending reimbursement — nearing expiration window (demo)',
                 'local_amount' => $this->sampleAmount($employee->currency),
                 'status' => PaymentStatus::Pending,
                 'created_at' => $almostExpiredAt,

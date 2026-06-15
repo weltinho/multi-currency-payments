@@ -86,7 +86,9 @@ Pending requests that finance does not approve or reject within **48 hours** are
 2. Every minute it runs `php artisan payments:expire-pending`.
 3. That command updates all `pending` rows whose `created_at` is older than 48 hours to `expired`.
 
-Demo seed data includes one pending payment per employee at **47h55m** so reviewers can see expirations within a few minutes of `docker compose up`, without waiting two days.
+Demo seed data includes one pending payment per employee **just under the configured window** (default 47h55m) so reviewers can see expirations within a few minutes of `docker compose up`, without waiting two days.
+
+**Local testing:** set `PAYMENT_PENDING_EXPIRATION_HOURS=1` in `backend/.env`, then `docker compose restart backend scheduler`. Re-seed if needed (`docker compose exec backend php artisan db:seed --class=PaymentSeeder`). Pending demo rows will expire ~5 minutes after creation.
 
 ### Why a scheduled command instead of a queued Job?
 I considered dispatching a delayed `ExpirePaymentJob` when each payment is created (`->delay(48 hours)`). We chose a **scheduled Artisan command** that scans the database instead:
@@ -150,6 +152,20 @@ PHPUnit uses a **separate MySQL database** (`payments_test`), not the demo `paym
 # or
 docker compose exec backend php artisan db:ensure-test-database
 docker compose exec backend php artisan test
+```
+
+**Critical subset** (payments + expiration):
+
+```bash
+docker compose exec backend php artisan test --filter='PaymentExpiration|PaymentService|PaymentImmutability|ExpirePendingPayments|PaymentCreate'
+```
+
+**SQLite (in-memory, no MySQL setup):**
+
+```bash
+./scripts/test-sqlite.sh
+# or
+docker compose exec backend php artisan test --configuration=phpunit.sqlite.xml
 ```
 
 On first boot, the entrypoint creates `payments_test` automatically. If you already had a Docker volume before this was added, run `db:ensure-test-database` once (or recreate the volume with `docker compose down -v && docker compose up -d`).

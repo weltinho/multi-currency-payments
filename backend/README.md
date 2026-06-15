@@ -4,21 +4,25 @@ Laravel 12 backend for the multi-currency payment request system.
 
 **Reviewers:** see [REVIEWER_NOTES.md](REVIEWER_NOTES.md) for intentional design decisions before reading the code.
 
-## Planned structure
+## Structure
 
 ```
 app/
-├── Console/Commands/     # ExpirePendingPayments command
-├── Enums/                # Role, PaymentStatus, CurrencyCode
+├── Console/Commands/     # ExpirePendingPayments, AppReady
+├── Contracts/            # Service/repository interfaces
+├── Enums/                # UserRole, PaymentStatus
 ├── Http/
-│   ├── Controllers/Api/V1/
-│   ├── Middleware/       # Role-based access
-│   ├── Requests/         # Form request validation
-│   └── Resources/        # API response transformers
+│   ├── Controllers/      # API endpoints
+│   ├── Middleware/       # Locale, forced password change
+│   └── Requests/         # Form request validation
 ├── Models/               # User, Payment
-├── Policies/             # Payment authorization
-└── Services/             # ExchangeRateService
+├── OpenApi/              # Scramble schema markers
+├── Repositories/         # Eloquent data access
+├── Services/             # Auth, payments, employees, exchange rates
+└── Support/              # Scramble config, locale, OpenAPI examples
 ```
+
+Authorization for payments lives in `PaymentService` (explicit, unit-tested). There is no separate policy layer.
 
 ## Packages
 
@@ -29,9 +33,10 @@ app/
 
 ```bash
 docker compose exec backend composer install
-docker compose exec backend php artisan key:generate
 docker compose exec backend php artisan migrate --seed
 docker compose exec backend php artisan test
+./scripts/test.sh              # MySQL (payments_test)
+./scripts/test-sqlite.sh       # in-memory SQLite
 ```
 
 ## API documentation

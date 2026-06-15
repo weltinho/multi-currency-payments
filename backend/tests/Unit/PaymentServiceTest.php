@@ -10,11 +10,14 @@ use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Models\User;
 use App\Services\Payment\PaymentService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Tests\TestCase;
 
 class PaymentServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function tearDown(): void
     {
         Mockery::close();
@@ -180,13 +183,13 @@ class PaymentServiceTest extends TestCase
 
     public function test_expire_stale_pending_delegates_to_repository(): void
     {
-        config(['payments.pending_expiration_hours' => 48]);
+        config(['payments.pending_expiration_hours' => 24]);
 
         $repository = Mockery::mock(PaymentRepositoryContract::class);
         $repository->shouldReceive('expirePendingOlderThan')
             ->once()
             ->with(Mockery::on(function (\DateTimeInterface $cutoff) {
-                $expected = now()->subHours(48);
+                $expected = now()->subHours(24);
 
                 return abs($cutoff->getTimestamp() - $expected->getTimestamp()) < 2;
             }))
