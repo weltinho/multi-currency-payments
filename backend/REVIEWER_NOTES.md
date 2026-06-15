@@ -20,7 +20,7 @@ Short guide to intentional design choices. Start here, then follow the file-leve
 ## Payments & exchange rates
 
 - Single table `payment_requests` — rate and EUR amount are **frozen at creation** (Buzzvel requirement). No separate `exchange_rates` cache table.
-- **Formula:** `eur_amount = local_amount / exchange_rate` where the rate is EUR → local from ExchangeRate-API v6 (`EXCHANGE_RATE_API_KEY` in `.env`).
+- **Formula:** `eur_amount = local_amount / exchange_rate` where the rate is EUR → local from ExchangeRate-API v6 (`EXCHANGE_RATE_API_KEY` in `.env`). Live rates are cached in Redis for `EXCHANGE_RATE_CACHE_TTL_SECONDS` (default 30s) to avoid hitting the provider rate limit.
 - **Currency** on a payment comes from the employee's profile at create time, not from the request body (prevents tampering).
 - **Authorization:** employees see/create only their own requests; finance sees all, filters by status/collaborator, and approves/rejects pending items (`409` if not pending).
 - `user_name` / `country` are **not** denormalized on the payment row — joined from `users` at serialize time (`Payment::toApiArray()`).

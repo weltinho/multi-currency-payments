@@ -16,6 +16,7 @@ use App\Services\ExchangeRate\ExchangeRateService;
 use App\Services\Payment\PaymentService;
 use App\Services\TestUser\TestUserService;
 use App\Services\Translation\Translator;
+use App\Support\ScrambleConfigurator;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -37,6 +38,6 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        ScrambleConfigurator::register();
     }
 }

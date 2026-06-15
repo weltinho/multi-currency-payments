@@ -9,6 +9,12 @@ use App\Exceptions\ExchangeRateException;
 use App\Exceptions\ForbiddenException;
 use App\Exceptions\NotFoundException;
 use App\Http\Requests\StorePaymentRequest;
+use App\OpenApi\PaginatedPaymentResponse;
+use App\OpenApi\PaymentResponse;
+use App\OpenApi\PaymentSummaryResponse;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\QueryParameter;
+use Dedoc\Scramble\Attributes\Response;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -23,16 +29,27 @@ class PaymentController extends Controller
         private TranslatorContract $translator,
     ) {}
 
+    #[Group('Finance', description: 'Finance audit — list, summary cards, approve/reject.', weight: 30)]
+    #[QueryParameter('status', example: 'pending', description: 'Filter by status badge: pending, approved, rejected, expired.')]
+    #[QueryParameter('collaborator', example: 'Rafael Silva')]
+    #[QueryParameter('page', type: 'integer', example: 1)]
+    #[QueryParameter('per_page', type: 'integer', example: 8)]
+    #[Response(200, type: PaginatedPaymentResponse::class)]
     public function index(Request $request): JsonResponse
     {
         return response()->json($this->payments->paginate($request->user(), $request->query()));
     }
 
+    #[Group('Finance', weight: 30)]
+    #[QueryParameter('collaborator', example: 'Rafael Silva')]
+    #[Response(200, type: PaymentSummaryResponse::class)]
     public function summary(Request $request): JsonResponse
     {
         return response()->json($this->payments->summary($request->user(), $request->query()));
     }
 
+    #[Group('Employee', description: 'Employees submit reimbursements in profile currency (or override).', weight: 40)]
+    #[Response(201, type: PaymentResponse::class)]
     public function store(StorePaymentRequest $request): JsonResponse
     {
         try {
@@ -47,6 +64,8 @@ class PaymentController extends Controller
         }
     }
 
+    #[Group('Employee', description: 'Payment detail for the employee history modal.', weight: 40)]
+    #[Response(200, type: PaymentResponse::class)]
     public function show(Request $request, string $id): JsonResponse
     {
         try {
@@ -58,6 +77,8 @@ class PaymentController extends Controller
         }
     }
 
+    #[Group('Finance', weight: 30)]
+    #[Response(200, type: PaymentResponse::class)]
     public function decide(Request $request, string $id): JsonResponse
     {
         $validated = $request->validate([

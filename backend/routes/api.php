@@ -19,11 +19,12 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TestUserController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/health', fn () => response()->json(['status' => 'ok']));
+Route::get('/health', HealthController::class);
 
 Route::get('/test-users', [TestUserController::class, 'index']);
 

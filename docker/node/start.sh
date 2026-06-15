@@ -1,7 +1,6 @@
 #!/bin/sh
-# Start Next.js only after a production build is available.
-# Docker marks the container as "started" once `next dev` is running;
-# the healthcheck below waits until HTTP responds on :3000.
+# Start Next.js only after the backend is healthy (migrate + seed + PHP-FPM).
+# Docker marks the container healthy once Next.js responds AND backend :9000 is reachable.
 set -e
 
 if [ ! -f .next/BUILD_ID ]; then

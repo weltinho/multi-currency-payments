@@ -10,6 +10,8 @@ use Illuminate\Validation\Rule;
 /**
  * Finance-only employee registration. We never accept role or password from the client —
  * those are decided server-side in EmployeeService.
+ *
+ * @ignoreSchema
  */
 class StoreEmployeeRequest extends FormRequest
 {

@@ -9,6 +9,8 @@ use Illuminate\Validation\Rule;
 /**
  * Employee payment creation. Amount + description required; currency optional
  * (defaults to the employee profile currency when omitted).
+ *
+ * @ignoreSchema
  */
 class StorePaymentRequest extends FormRequest
 {

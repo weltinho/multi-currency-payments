@@ -39,6 +39,9 @@ return [
         'url' => env('EXCHANGE_RATE_API_URL', 'https://v6.exchangerate-api.com/v6'),
         'key' => env('EXCHANGE_RATE_API_KEY'),
         'source' => env('EXCHANGE_RATE_SOURCE', 'exchangerate-api.com'),
+        // Short-lived Redis cache — avoids hammering the provider rate limit when
+        // several payments are created within the same window.
+        'cache_ttl_seconds' => (int) env('EXCHANGE_RATE_CACHE_TTL_SECONDS', 30),
     ],
 
 ];

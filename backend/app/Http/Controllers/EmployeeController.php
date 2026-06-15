@@ -6,7 +6,12 @@ use App\Contracts\Employee\EmployeeServiceContract;
 use App\Contracts\Translation\TranslatorContract;
 use App\Exceptions\ForbiddenException;
 use App\Http\Requests\StoreEmployeeRequest;
+use App\OpenApi\CountryProfileListResponse;
+use App\OpenApi\EmployeeListResponse;
+use App\OpenApi\UserResponse;
 use App\Support\EmployeeCountryProfiles;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\Response;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,6 +22,7 @@ use Illuminate\Http\Request;
  * GET  /employees  — list for finance dashboard / collaborator filter
  * GET  /employee-countries — allowed country/currency profiles for the form
  */
+#[Group('Finance', description: 'Finance-only — register employees and list collaborators.', weight: 30)]
 class EmployeeController extends Controller
 {
     public function __construct(
@@ -24,6 +30,7 @@ class EmployeeController extends Controller
         private TranslatorContract $translator,
     ) {}
 
+    #[Response(200, type: EmployeeListResponse::class)]
     public function index(Request $request): JsonResponse
     {
         try {
@@ -35,6 +42,7 @@ class EmployeeController extends Controller
         }
     }
 
+    #[Response(201, type: UserResponse::class)]
     public function store(StoreEmployeeRequest $request): JsonResponse
     {
         try {
@@ -47,6 +55,7 @@ class EmployeeController extends Controller
         }
     }
 
+    #[Response(200, type: CountryProfileListResponse::class)]
     public function countries(): JsonResponse
     {
         return response()->json([

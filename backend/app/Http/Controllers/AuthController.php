@@ -5,6 +5,11 @@ namespace App\Http\Controllers;
 use App\Contracts\Auth\AuthServiceContract;
 use App\Contracts\Translation\TranslatorContract;
 use App\Http\Requests\ChangePasswordRequest;
+use App\OpenApi\MessageResponse;
+use App\OpenApi\UserResponse;
+use Dedoc\Scramble\Attributes\BodyParameter;
+use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\Response;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +25,13 @@ class AuthController extends Controller
         private TranslatorContract $translator,
     ) {}
 
+    /**
+     * @unauthenticated
+     */
+    #[Group('Public', description: 'Session login — run Public → Get CSRF cookie first when using Try It.', weight: 10)]
+    #[BodyParameter('email', type: 'string', format: 'email', example: 'finance@buzzvel.com')]
+    #[BodyParameter('password', type: 'string', example: '123456')]
+    #[Response(200, type: MessageResponse::class, examples: [['message' => 'Authenticated']])]
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
@@ -35,14 +47,17 @@ class AuthController extends Controller
         ]);
     }
 
+    #[Group('Auth', description: 'Session user, logout, and first-login password change.', weight: 20)]
+    #[Response(200, type: UserResponse::class)]
     public function user(Request $request): JsonResponse
     {
         return response()->json($this->auth->currentUser($request->user()));
     }
 
+    #[Group('Auth', weight: 20)]
+    #[Response(200, type: UserResponse::class)]
     public function updatePassword(ChangePasswordRequest $request): JsonResponse
     {
-        // Returns the updated user payload (must_change_password should now be false).
         $validated = $request->validated();
 
         return response()->json(
@@ -54,6 +69,8 @@ class AuthController extends Controller
         );
     }
 
+    #[Group('Auth', weight: 20)]
+    #[Response(204)]
     public function logout(Request $request): JsonResponse
     {
         Auth::guard('web')->logout();

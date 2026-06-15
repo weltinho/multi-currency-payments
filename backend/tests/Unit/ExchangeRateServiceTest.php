@@ -27,6 +27,7 @@ class ExchangeRateServiceTest extends TestCase
             'services.exchange_rate.url' => 'https://v6.exchangerate-api.com/v6',
             'services.exchange_rate.key' => 'test-key',
             'services.exchange_rate.source' => 'exchangerate-api.com',
+            'services.exchange_rate.cache_ttl_seconds' => 30,
         ]);
 
         Http::fake([
@@ -44,6 +45,34 @@ class ExchangeRateServiceTest extends TestCase
 
         $this->assertSame(6.21, $result['rate']);
         $this->assertSame('exchangerate-api.com', $result['source']);
+    }
+
+    public function test_it_caches_rates_to_avoid_repeated_api_calls(): void
+    {
+        config([
+            'services.exchange_rate.url' => 'https://v6.exchangerate-api.com/v6',
+            'services.exchange_rate.key' => 'test-key',
+            'services.exchange_rate.source' => 'exchangerate-api.com',
+            'services.exchange_rate.cache_ttl_seconds' => 30,
+        ]);
+
+        Http::fake([
+            'https://v6.exchangerate-api.com/v6/test-key/latest/EUR' => Http::response([
+                'result' => 'success',
+                'base_code' => 'EUR',
+                'conversion_rates' => [
+                    'BRL' => 6.21,
+                    'USD' => 1.08,
+                ],
+            ]),
+        ]);
+
+        $service = new ExchangeRateService;
+
+        $service->getRateForCurrency('BRL');
+        $service->getRateForCurrency('USD');
+
+        Http::assertSentCount(1);
     }
 
     public function test_it_computes_eur_amount_from_local_amount(): void

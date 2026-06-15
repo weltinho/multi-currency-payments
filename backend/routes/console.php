@@ -12,6 +12,7 @@
 |
 */
 
+use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -22,15 +23,18 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('db:ensure-seeded', function () {
-    // Docker entrypoint calls this after migrate. Idempotent — won't re-seed if
-    // someone already registered employees or we ran seed manually.
-    if (User::query()->count() > 0) {
-        $this->info('Database already has users — skipping seed.');
+    // Docker entrypoint calls this after migrate. Idempotent — re-seeds when demo
+    // data is missing (e.g. users without payments after a partial wipe).
+    $users = User::query()->count();
+    $payments = Payment::query()->count();
+
+    if ($users > 0 && $payments > 0) {
+        $this->info('Database already has demo data — skipping seed.');
 
         return;
     }
 
-    $this->warn('No users found — running seeders...');
+    $this->warn('Demo data incomplete — running seeders...');
     $this->call('db:seed', ['--force' => true]);
 })->purpose('Seed demo users and payments when the database is empty');
 

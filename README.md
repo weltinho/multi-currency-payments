@@ -43,11 +43,13 @@ cd multi-currency-payments
 docker compose up -d --build
 ```
 
-**First boot can take a few minutes** (Composer install, Laravel migrate/seed, Next.js build). Wait until all containers are healthy:
+**First boot can take a few minutes** (Composer install, Laravel migrate/seed, Next.js build). Wait until **all** containers are healthy:
 
 ```bash
 docker compose ps
 ```
+
+You should see `backend`, `frontend`, and `database` as **healthy** before opening the UI. The stack is wired so the frontend does not start until the API has finished bootstrapping and demo data is seeded (`php artisan app:ready`).
 
 Then open:
 
@@ -64,9 +66,13 @@ The `backend` container bootstraps the API:
 1. `composer install` (if `vendor/` is missing)
 2. `php artisan key:generate` (if `APP_KEY` is empty)
 3. `php artisan migrate --force`
-4. `php artisan db:ensure-seeded` (demo users when the database is empty)
+4. `php artisan db:ensure-seeded` (demo users and payments when data is missing)
+5. `php artisan scramble:analyze` + `scramble:export` (OpenAPI docs validated at bootstrap)
+6. Writes `storage/framework/.bootstrap-complete` and exposes a healthcheck (`php artisan app:ready`)
 
-The `scheduler` container waits for the database, then runs `php artisan schedule:work`, which expires pending payments older than 48 hours every minute.
+The `frontend` container waits for `backend` to be **healthy** before starting Next.js. The `webserver` waits for both `frontend` and `backend` to be healthy, then exposes port 8080 only when `/api/health` **and** `/docs/api` (Scramble) respond — so the UI and interactive API docs are guaranteed on `docker compose up`.
+
+The `scheduler` container also waits for `backend` to be healthy, then runs `php artisan schedule:work` (expires pending payments older than 48 hours every minute).
 
 **You do not need** to run `key:generate` or `migrate --seed` manually for a normal Docker setup.
 

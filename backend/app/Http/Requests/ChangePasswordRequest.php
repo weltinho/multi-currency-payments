@@ -10,6 +10,8 @@ use Illuminate\Foundation\Http\FormRequest;
  * Validates PUT /api/password — used after finance provisions an account and the
  * employee logs in for the first time. Current password can still be their first
  * name; the new password must satisfy PasswordPolicy.
+ *
+ * @ignoreSchema
  */
 class ChangePasswordRequest extends FormRequest
 {

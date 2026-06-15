@@ -4,8 +4,8 @@
 # Internal DNS: webserver, frontend, backend, database, redis, scheduler
 #
 # Startup order (depends_on):
-#   database, redis → backend (bootstrap: composer, migrate, seed) → frontend → webserver
-#   scheduler waits for vendor/ via entrypoint, then runs schedule:work
+#   database, redis → backend (bootstrap + healthcheck) → frontend → webserver (healthcheck incl. /docs/api)
+#   scheduler waits for backend healthy, then runs schedule:work
 #
 # Quick start:
 #   docker compose up -d --build
@@ -25,11 +25,21 @@ services:
       - "${APP_PORT:-8080}:80"
     volumes:
       - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q --spider http://127.0.0.1/api/health && wget -q --spider http://127.0.0.1/docs/api || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     depends_on:
       frontend:
         condition: service_healthy
       backend:
-        condition: service_started
+        condition: service_healthy
     networks:
       - app
 
@@ -56,7 +66,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://127.0.0.1:3000').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+          "const net=require('net');const probe=(h,p)=>new Promise((r,j)=>{const s=net.connect(p,h,()=>{s.end();r()});s.on('error',j);s.setTimeout(3000,()=>{s.destroy();j()})});Promise.all([fetch('http://127.0.0.1:3000').then((x)=>x.ok||Promise.reject()),probe('backend',9000)]).then(()=>process.exit(0)).catch(()=>process.exit(1))",
         ]
       interval: 5s
       timeout: 5s
@@ -68,7 +78,7 @@ services:
       redis:
         condition: service_started
       backend:
-        condition: service_started
+        condition: service_healthy
     networks:
       - app
 
@@ -95,6 +105,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan app:ready --no-ansi >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 60
+      start_period: 300s
     networks:
       - app
 
@@ -122,7 +138,7 @@ services:
       redis:
         condition: service_started
       backend:
-        condition: service_started
+        condition: service_healthy
     networks:
       - app
 

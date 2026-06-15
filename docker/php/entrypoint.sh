@@ -5,6 +5,7 @@
 #   1. Installs Composer dependencies if vendor/ is missing (with a file lock).
 #   2. Generates APP_KEY if .env exists but the key is empty.
 #   3. Runs migrations and seeds demo users when the database is empty.
+#   4. Validates and exports Scramble OpenAPI docs (/docs/api).
 #
 # Non-bootstrap (scheduler): waits for vendor/autoload.php, then hands off to CMD.
 # Both services share ./backend on the host — only one process may run composer install.
@@ -118,6 +119,14 @@ if [ "${APP_BOOTSTRAP:-false}" = "true" ]; then
 
   echo "Ensuring test database exists..."
   php artisan db:ensure-test-database --no-interaction
+
+  echo "Validating Scramble API documentation..."
+  php artisan scramble:analyze --no-interaction
+  php artisan scramble:export --path=storage/app/scramble-openapi.json --no-interaction
+
+  mkdir -p /var/www/html/storage/framework
+  touch /var/www/html/storage/framework/.bootstrap-complete
+  echo "Bootstrap complete — API ready for traffic."
 else
   wait_for_vendor
   wait_for_database

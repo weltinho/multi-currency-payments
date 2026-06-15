@@ -20,7 +20,13 @@ All authenticated endpoints require a valid Sanctum session cookie.
 GET /sanctum/csrf-cookie
 ```
 
-No request body. Sets the `XSRF-TOKEN` cookie required for mutating requests.
+Full URL: `http://localhost:8080/sanctum/csrf-cookie` (site root — **not** under `/api`).
+
+No request body. Returns **204 No Content** (empty response body is normal) and sets the `XSRF-TOKEN` cookie required for `POST`/`PUT`/`PATCH`.
+
+**After 204, proceed** to login or the next mutating request on the same docs tab — e.g. **Public → auth.login** in Scramble Try It.
+
+**Try It (Scramble):** open **Public → Get CSRF cookie**, click **Send API Request** (nothing to fill), wait for **204**, then go to **auth.login** or any mutating endpoint.
 
 ---
 
@@ -35,7 +41,7 @@ POST /api/login
 ```json
 {
   "email": "finance@buzzvel.com",
-  "password": "password"
+  "password": "123456"
 }
 ```
 
