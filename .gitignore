@@ -2,10 +2,7 @@
 node_modules/
 vendor/
 
-# Environment
-.env
-.env.local
-.env.*.local
+
 !.env.example
 
 # Build / cache
