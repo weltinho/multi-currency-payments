@@ -95,4 +95,4 @@ Feature tests cover auth, employee registration, payment create/approve, expirat
 
 - **Interactive:** http://localhost:8080/docs/api (live: https://welton-buzzvel.duckdns.org/docs/api) — Scramble Try It, example responses
 - **Static:** [docs/api.md](../docs/api.md)
-- **Demo video:** [docs/demo.md](../docs/demo.md) (add link before submission)
+- **Demo video:** https://www.loom.com/share/af8e0ab31dd7478184360fb58dfc4d8b ([docs/demo.md](../docs/demo.md))

@@ -4,6 +4,17 @@ Buzzvel 2026 Dev Team Test — corporate multi-currency payment request system.
 
 Employees submit payment requests in their local currency. Exchange rates are fetched at creation time and stored immutably. The finance team reviews and approves or rejects requests.
 
+## Run locally
+
+```bash
+docker compose up -d --build
+```
+
+Then open:
+
+- http://localhost:8080
+- http://localhost:8080/docs/api
+
 **For reviewers:** [backend/REVIEWER_NOTES.md](backend/REVIEWER_NOTES.md) — brief checklist, architecture decisions, and code pointers. API reference: [docs/api.md](docs/api.md).
 
 **Live deployment:** https://welton-buzzvel.duckdns.org (same stack as below, configured on the host).
@@ -65,7 +76,7 @@ After clone, you should not need to edit anything unless you want your own excha
 ## Quick start
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/weltinho/multi-currency-payments
 cd multi-currency-payments
 docker compose up -d --build
 ```
@@ -152,7 +163,8 @@ New employees get `must_change_password: true` and must call `PUT /api/password`
 
 ## Demo video
 
-Add your public demo URL to [docs/demo.md](docs/demo.md) before submitting the ClickUp form.
+**https://www.loom.com/share/af8e0ab31dd7478184360fb58dfc4d8b**
+
 
 ## Seed credentials (demo only — for reviewers)
 
@@ -227,7 +239,7 @@ Reviewer-focused backend notes: [backend/REVIEWER_NOTES.md](backend/REVIEWER_NOT
 - **Interactive (Scramble):** http://localhost:8080/docs/api (live: https://welton-buzzvel.duckdns.org/docs/api)
 - **Static reference:** [docs/api.md](docs/api.md)
 - **Architecture:** [docs/architecture.md](docs/architecture.md)
-- **Demo video:** [docs/demo.md](docs/demo.md)
+- **Demo video:** https://www.loom.com/share/af8e0ab31dd7478184360fb58dfc4d8b ([docs/demo.md](docs/demo.md))
 
 ## Useful commands
 
