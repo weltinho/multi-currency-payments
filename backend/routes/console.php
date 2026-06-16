@@ -6,7 +6,7 @@
 |--------------------------------------------------------------------------
 |
 | db:ensure-seeded — called from Docker entrypoint when the DB has no users.
-| payments:expire-pending — scheduled every minute by the scheduler container.
+| payments:expire-pending — scheduled every 15 seconds by the scheduler container.
 |
 | Expiration is a scheduled command, not a per-payment queued Job — see README.
 |
@@ -75,5 +75,5 @@ Artisan::command('db:ensure-test-database', function () {
 
 // Scheduled command (not a delayed Job) — see README for why we chose this.
 Schedule::command('payments:expire-pending')
-    ->everyMinute() // demo-friendly; hourly would be fine in production
+    ->everyFifteenSeconds()
     ->withoutOverlapping();

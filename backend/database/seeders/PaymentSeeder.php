@@ -12,8 +12,8 @@ use Illuminate\Database\Seeder;
 /**
  * Demo payment requests for finance/employee dashboards.
  *
- * Every seeded employee gets one pending request aged 47h57m so the scheduled
- * expire command will flip it within ~3 minutes of a fresh docker compose up.
+ * Every seeded employee gets one pending request aged 47h59m30s so the scheduled
+ * expire command will flip it within ~90 seconds of a fresh docker compose up.
  */
 class PaymentSeeder extends Seeder
 {
@@ -49,7 +49,7 @@ class PaymentSeeder extends Seeder
 
         // Just under the configured window — scheduler will expire these shortly after boot.
         $expirationHours = (int) config('payments.pending_expiration_hours', 48);
-        $almostExpiredAt = Carbon::now()->subHours($expirationHours)->addMinutes(3);
+        $almostExpiredAt = Carbon::now()->subHours($expirationHours)->addSeconds(90);
         $sequence = 1001;
 
         foreach ($employees as $employee) {

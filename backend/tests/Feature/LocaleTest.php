@@ -23,6 +23,7 @@ class LocaleTest extends TestCase
         $response->assertUnprocessable()
             ->assertJsonValidationErrors(['email'])
             ->assertJsonFragment([
+                'message' => 'As credenciais fornecidas estão incorretas.',
                 'email' => ['As credenciais fornecidas estão incorretas.'],
             ]);
     }

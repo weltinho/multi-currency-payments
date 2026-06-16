@@ -212,11 +212,14 @@ class PaymentServiceTest extends TestCase
         $repository = Mockery::mock(PaymentRepositoryContract::class);
         $repository->shouldReceive('expirePendingOlderThan')
             ->once()
-            ->with(Mockery::on(function (\DateTimeInterface $cutoff) {
-                $expected = now()->subHours(24);
+            ->with(
+                Mockery::on(function (\DateTimeInterface $cutoff) {
+                    $expected = now()->subHours(24);
 
-                return abs($cutoff->getTimestamp() - $expected->getTimestamp()) < 2;
-            }))
+                    return abs($cutoff->getTimestamp() - $expected->getTimestamp()) < 2;
+                }),
+                24,
+            )
             ->andReturn(3);
 
         $service = new PaymentService($repository, $this->exchangeRates());

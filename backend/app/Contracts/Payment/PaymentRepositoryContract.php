@@ -27,7 +27,8 @@ interface PaymentRepositoryContract
     public function create(array $data): array;
 
     /**
-     * Bulk-expire pending rows created on or before $cutoff. Returns how many were updated.
+     * Bulk-expire pending rows strictly older than the window (created_at + hours < now).
+     * Sets updated_at to created_at + expirationHours for accurate "expired at" display.
      */
-    public function expirePendingOlderThan(\DateTimeInterface $cutoff): int;
+    public function expirePendingOlderThan(\DateTimeInterface $cutoff, int $expirationHours): int;
 }

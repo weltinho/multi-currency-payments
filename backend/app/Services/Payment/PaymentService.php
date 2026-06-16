@@ -164,7 +164,7 @@ class PaymentService implements PaymentServiceContract
         $hours = (int) config('payments.pending_expiration_hours', 48);
         $cutoff = now()->subHours($hours);
 
-        return $this->payments->expirePendingOlderThan($cutoff);
+        return $this->payments->expirePendingOlderThan($cutoff, $hours);
     }
 
     /**

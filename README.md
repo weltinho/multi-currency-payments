@@ -19,7 +19,7 @@ Browser (:8080)
             └── /docs       → backend (Scramble docs)
     └── database (MySQL)
     └── redis
-    └── scheduler (runs payments:expire-pending every minute via schedule:work)
+    └── scheduler (runs payments:expire-pending every 15 seconds via schedule:work)
 ```
 
 ## Prerequisites
@@ -78,7 +78,7 @@ The `backend` container bootstraps the API:
 
 The `frontend` container waits for `backend` to be **healthy** before starting Next.js. The `webserver` waits for both `frontend` and `backend` to be healthy, then exposes port 8080 only when `/api/health` **and** `/docs/api` (Scramble) respond — so the UI and interactive API docs are guaranteed on `docker compose up`.
 
-The `scheduler` container also waits for `backend` to be healthy, then runs `php artisan schedule:work` (expires pending payments older than 48 hours every minute).
+The `scheduler` container also waits for `backend` to be healthy, then runs `php artisan schedule:work` (expires pending payments strictly older than 48 hours every 15 seconds).
 
 **You do not need** to run `key:generate` or `migrate --seed` manually for a normal Docker setup.
 
@@ -89,12 +89,12 @@ Pending requests that finance does not approve or reject within **48 hours** are
 ### How it works
 
 1. The `scheduler` container runs `php artisan schedule:work`.
-2. Every minute it runs `php artisan payments:expire-pending`.
-3. That command updates all `pending` rows whose `created_at` is older than 48 hours to `expired`.
+2. Every 15 seconds it runs `php artisan payments:expire-pending`.
+3. That command updates all `pending` rows **strictly older than 48 hours** (`created_at + 48h < now`) to `expired`, and sets `updated_at` to `created_at + 48h` for accurate display.
 
-Demo seed data includes one pending payment per employee **just under the configured window** (default 47h57m) so reviewers can see expirations within a few minutes of `docker compose up`, without waiting two days.
+Demo seed data includes one pending payment per employee **just under the configured window** (default 47h59m30s) so reviewers can see expirations within ~90 seconds of `docker compose up`, without waiting two days.
 
-**Local testing:** set `PAYMENT_PENDING_EXPIRATION_HOURS=1` in `backend/.env`, then `docker compose restart backend scheduler`. Re-seed if needed (`docker compose exec backend php artisan db:seed --class=PaymentSeeder`). Pending demo rows will expire ~3 minutes after creation.
+**Local testing:** set `PAYMENT_PENDING_EXPIRATION_HOURS=1` in `backend/.env`, then `docker compose restart backend scheduler`. Re-seed if needed (`docker compose exec backend php artisan db:seed --class=PaymentSeeder`). Pending demo rows will expire ~90 seconds after creation.
 
 ### Why a scheduled command instead of a queued Job?
 I considered dispatching a delayed `ExpirePaymentJob` when each payment is created (`->delay(48 hours)`). We chose a **scheduled Artisan command** that scans the database instead:
@@ -109,7 +109,7 @@ I considered dispatching a delayed `ExpirePaymentJob` when each payment is creat
 
 For this test project the rule is simple, the volume is small, and we wanted reviewers to run `docker compose up` without extra moving parts. A command plus scheduler is the usual Laravel pattern for this kind of housekeeping.
 
-If we later needed per-payment notifications at the exact expiry second, we could add Jobs on top — or run the command less often (e.g. hourly) in production.
+See [Beyond the test submission](#beyond-the-test-submission) for how I would harden expiry and other demo shortcuts in a real deployment.
 
 Configuration: `config/payments.php` / `PAYMENT_PENDING_EXPIRATION_HOURS` in `backend/.env`.
 
@@ -269,6 +269,38 @@ docker compose up -d --build
 - The frontend talks to the API via same-origin paths (`/api`, `/sanctum`) through Nginx — not port 3000 directly.
 - `backend/vendor/` is gitignored and installed inside Docker on first boot.
 - For standalone frontend dev without Nginx, see [frontend/README.md](frontend/README.md).
+
+## Beyond the test submission
+
+This repo is optimized for **Buzzvel reviewers**: one-command Docker, committed `.env`, demo passwords, public test-users endpoint. **Nothing in this section is implemented** — it is a concise map of what stays as-is in the test build versus what I would change for a real rollout.
+
+| Area | This repo (test) | Production |
+|------|------------------|------------|
+| **Secrets & config** | `.env` committed; `APP_DEBUG=true` locally | Secrets manager or CI injection; `APP_DEBUG=false`; `APP_URL` + Sanctum/session cookies aligned with HTTPS (`SESSION_SECURE_COOKIE=true`) |
+| **Demo API surface** | `GET /api/test-users` + login “Test instructions” modal | Remove or protect the route; hide the modal in production builds |
+| **API docs** | Scramble public at `/docs/api` | `RestrictedDocsAccess` in production — gate with `viewApiDocs`, VPN, or basic auth |
+| **Passwords** | Six-digit demo policy (`PasswordPolicy`, `frontend/lib/password-policy.ts`) | Stronger rules (length, complexity, breach checks) in the same two files |
+| **Employee onboarding** | Initial password = first name | Random secret delivered out-of-band (email, IdP) |
+| **Payment expiry** | Scheduled sweeper every 15s | Lookahead command + delayed `ExpirePaymentJob` per payment + hourly fallback sweeper + `queue:work` (see below) |
+| **Exchange rates** | Single provider (ExchangeRate-API v6) + Redis cache | Multi-provider price oracle + immutable per-payment snapshot (see below) |
+| **Authorization** | Rules in `PaymentService` (unit-tested) | Laravel Policies if the rule set grows; keep contracts/repos for external HR integrations |
+
+### Payment expiry (production detail)
+
+For second-precise expiry:
+
+1. **Lookahead command** (e.g. every minute) — pending payments expiring in the next ~2 minutes get an `ExpirePaymentJob` delayed to `created_at + 48h`; the job re-checks status before expiring.
+2. **Fallback sweeper** — `payments:expire-pending` on a slower schedule (e.g. hourly) for missed jobs, worker downtime, or backfilled rows.
+3. **`queue:work`** — dedicated worker container (Redis is already in Compose).
+
+### Exchange rates (production detail)
+
+Keep the current **immutable snapshot** on each payment (`exchange_rate`, `rate_source`, `rate_fetched_at`, `eur_amount`). Do not overwrite `rate_fetched_at` with `created_at` when cache reuses an earlier fetch.
+
+On top of that:
+
+- **Price oracle** — fetch several APIs in parallel (e.g. five), discard outliers, aggregate (median or trimmed mean), cache, and record which providers contributed on the payment row.
+- **Optional `exchange_rate_snapshots` table** — full fetch log if compliance needs more than the row-level audit fields.
 
 ## License
 

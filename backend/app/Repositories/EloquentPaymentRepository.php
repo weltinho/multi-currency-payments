@@ -6,6 +6,7 @@ use App\Contracts\Payment\PaymentRepositoryContract;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Eloquent-backed payment persistence (replaces the early in-memory stub
@@ -70,14 +71,18 @@ class EloquentPaymentRepository implements PaymentRepositoryContract
         return $payment->fresh(['user'])->toApiArray();
     }
 
-    public function expirePendingOlderThan(\DateTimeInterface $cutoff): int
+    public function expirePendingOlderThan(\DateTimeInterface $cutoff, int $expirationHours): int
     {
-        // System expiry — leave reviewed_at null (finance never touched these).
-        // Only pending rows; approved/rejected are untouched by the sweeper.
+        // Strictly older than the window: at exactly 48h00m00s the row stays pending.
         return Payment::query()
             ->where('status', PaymentStatus::Pending)
-            ->where('created_at', '<=', $cutoff)
-            ->update(['status' => PaymentStatus::Expired]);
+            ->where('created_at', '<', $cutoff)
+            ->update([
+                'status' => PaymentStatus::Expired,
+                'updated_at' => DB::raw(
+                    'DATE_ADD(created_at, INTERVAL '.(int) $expirationHours.' HOUR)'
+                ),
+            ]);
     }
 
     /**

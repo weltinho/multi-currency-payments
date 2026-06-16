@@ -11,7 +11,7 @@ Short guide mapping the Buzzvel brief to this repo. Start here, then follow file
 | Payment CRUD (create, read list/detail + status filter, approve/reject) | `POST/GET /payments`, `GET /payments/{id}`, `PATCH /payments/{id}`; finance vs employee scoping in `PaymentService` |
 | Exchange rate at creation, immutable | Fetched once in `PaymentService::create()`; model guard blocks changes to economic fields |
 | EUR → local rate, store rate + source + timestamp, return EUR amount | Columns `exchange_rate`, `rate_source`, `rate_fetched_at`; API returns `eur_amount`, `rate_source`, `rate_fetched_at` |
-| Expire pending > 48h (scheduled) | `payments:expire-pending` every minute via `scheduler` container |
+| Expire pending > 48h (scheduled) | `payments:expire-pending` every 15 seconds via `scheduler` container |
 | Validation | FormRequests on all mutating endpoints |
 | API docs + example responses | Scramble at `/docs/api` + [docs/api.md](../docs/api.md) |
 | Unit tests (critical paths) | `tests/Unit/*` + feature tests; run `php artisan test` |

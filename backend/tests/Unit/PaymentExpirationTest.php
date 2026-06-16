@@ -56,8 +56,39 @@ class PaymentExpirationTest extends TestCase
         $repository = new EloquentPaymentRepository;
         $cutoff = now()->subHours(48);
 
-        $this->assertSame(1, $repository->expirePendingOlderThan($cutoff));
+        $this->assertSame(1, $repository->expirePendingOlderThan($cutoff, 48));
         $this->assertSame(PaymentStatus::Expired, Payment::query()->where('reference', 'PAY-EXP-1')->value('status'));
         $this->assertSame(PaymentStatus::Pending, Payment::query()->where('reference', 'PAY-EXP-2')->value('status'));
+    }
+
+    public function test_repository_does_not_expire_pending_rows_at_exactly_forty_eight_hours(): void
+    {
+        $employee = User::create([
+            'name' => 'Boundary Employee',
+            'email' => 'boundary.expire@buzzvel.com',
+            'password' => '123456',
+            'role' => UserRole::Employee,
+            'country' => 'Portugal',
+            'country_code' => 'PT',
+            'currency' => 'EUR',
+        ]);
+
+        Payment::query()->create([
+            'reference' => 'PAY-EXP-BOUNDARY',
+            'user_id' => $employee->id,
+            'description' => 'Exactly 48h',
+            'currency' => 'EUR',
+            'local_amount' => 100,
+            'exchange_rate' => 1,
+            'eur_amount' => 100,
+            'rate_source' => 'test',
+            'rate_fetched_at' => now(),
+            'status' => PaymentStatus::Pending,
+        ])->forceFill(['created_at' => now()->subHours(48), 'updated_at' => now()->subHours(48)])->saveQuietly();
+
+        $repository = new EloquentPaymentRepository;
+
+        $this->assertSame(0, $repository->expirePendingOlderThan(now()->subHours(48), 48));
+        $this->assertSame(PaymentStatus::Pending, Payment::query()->where('reference', 'PAY-EXP-BOUNDARY')->value('status'));
     }
 }
