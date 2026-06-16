@@ -2,6 +2,18 @@
 
 Short guide mapping the Buzzvel brief to this repo. Start here, then follow file-level comments in the codebase.
 
+## Intentional demo shortcuts (read this first)
+
+**I know what production-grade looks like.** For this submission I still committed `.env` files and exposed `GET /api/test-users` (plus the login-screen “Test instructions” modal) **on purpose** — so you can evaluate the system without setup friction. **I am not removing those for this test.**
+
+| Shortcut | For reviewers | In production I would instead |
+|----------|---------------|-----------------------------|
+| `.env` / `backend/.env` in git | `docker compose up` works immediately; exchange-rate key included | Secrets manager / CI; never commit keys |
+| `GET /api/test-users` | Lists seeded finance + employee emails; use with password `123456` | Delete route or require auth / env flag |
+| Shared demo password `123456` | Fast login across roles | Unique credentials; no public list |
+
+More context: root [README.md](../README.md#intentional-reviewer-conveniences-not-production-practice) and [Beyond the test submission](../README.md#beyond-the-test-submission).
+
 ## Brief checklist (backend)
 
 | Requirement | How we satisfy it |
@@ -32,7 +44,7 @@ The **Next.js frontend** at `http://localhost:8080` (live: https://welton-buzzve
 - **Laravel Sanctum** cookie SPA (same-origin via Nginx), not Passport — acceptable per brief (“or another preferred mechanism”); fits the Next.js frontend without storing tokens in JavaScript.
 - **Login / logout:** `POST /api/login`, `POST /api/logout` (session).
 - **Registration:** not a public `POST /register`. Finance creates employee accounts with `POST /api/employees`. New employees get `must_change_password = true` and must call `PUT /api/password` on first login (initial password = first name from `EmployeeService`; seeded demo users use `123456` for easy review).
-- Demo credentials: `finance@buzzvel.com` / `123456`. `GET /api/test-users` lists seeded accounts for the login modal (demo only).
+- **Demo login aid (intentional):** `finance@buzzvel.com` / `123456`. `GET /api/test-users` lists seeded accounts for the login modal — **reviewer convenience only**; documented as demo-only in Scramble; would be removed or protected in production (see [Intentional demo shortcuts](#intentional-demo-shortcuts-read-this-first) above).
 
 ## Payments & exchange rates
 
@@ -56,13 +68,13 @@ The **Next.js frontend** at `http://localhost:8080` (live: https://welton-buzzve
 ## Demo data
 
 - `UserSeeder`: 3 finance + 20 employees across countries/currencies.
-- `PaymentSeeder`: at least one pending request per employee, timestamped just under the configured expiration window so the scheduler expires them shortly after `docker compose up`. Extra showcase rows cover other statuses.
+- `PaymentSeeder`: at least one pending request per employee, timestamped ~6 minutes before the 48h window ends so the scheduler expires them shortly after `docker compose up` (good for demo video). Extra showcase rows cover other statuses.
 - Docker entrypoint runs `migrate` + `db:ensure-seeded` when the database has no users.
 
 ## Payment expiration (48h)
 
 - Pending requests older than **48 hours** (configurable) are marked `expired` by `php artisan payments:expire-pending`.
-- Registered in `routes/console.php` to run **every minute**; the `scheduler` container runs `php artisan schedule:work` (no host cron).
+- Registered in `routes/console.php` to run **every 15 seconds**; the `scheduler` container runs `php artisan schedule:work` (no host cron).
 - Window: `PAYMENT_PENDING_EXPIRATION_HOURS` / `config/payments.php`.
 - Expiration does **not** set `reviewed_at` — finance never acted on these.
 - **Why command, not Job?** See root [README.md](../README.md#payment-expiration-48h) — batch sweeper fits the global 48h rule and keeps Docker simple (no dedicated queue worker).

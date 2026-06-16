@@ -8,6 +8,9 @@ Employees submit payment requests in their local currency. Exchange rates are fe
 
 **Live deployment:** https://welton-buzzvel.duckdns.org (same stack as below, configured on the host).
 
+> **For Buzzvel reviewers — intentional shortcuts**  
+> I **know** that committing `.env` files and exposing `GET /api/test-users` is **not** acceptable in a real production system. **This submission keeps both on purpose** so you can run `docker compose up` and log in without copying secrets, hunting API keys, or digging through seeders. I am **not** changing that for this test — reviewer experience comes first here. See [Intentional reviewer conveniences](#intentional-reviewer-conveniences-not-production-practice) and [Beyond the test submission](#beyond-the-test-submission) for what I would do in production instead.
+
 ## Architecture
 
 ```
@@ -28,9 +31,19 @@ Browser (:8080)
 
 No need to install PHP, Node, Composer, or pnpm on the host — everything runs in containers.
 
-## Environment files (committed for reviewers)
+## Intentional reviewer conveniences (not production practice)
 
-This is a **test submission**, so `.env` and `backend/.env` are **committed to the repository** on purpose. That is not recommended for production, but it lets reviewers run the stack without copying example files or hunting for API keys.
+**Deliberate choices for this Buzzvel test only.** I would never ship a real product this way — but I want the person grading this to spend time on the app, not on setup friction.
+
+| What | Why it is in the repo | What I know is “correct” in production |
+|------|------------------------|----------------------------------------|
+| **Committed `.env` and `backend/.env`** | Clone → `docker compose up` — no `cp .env.example`, no missing `EXCHANGE_RATE_API_KEY`, no `APP_KEY` hunt | Secrets in a vault or CI; `.env` gitignored; rotate keys per environment |
+| **`GET /api/test-users` + login “Test instructions” modal** | One click / one request to see all seeded finance and employee emails; password `123456` documented in Scramble | Remove the route or protect it; no public account enumeration |
+| **Demo password `123456` for seeded users** | Fast login while reviewing employee vs finance flows | Strong passwords; no shared demo secret in a live system |
+
+**I am keeping these as-is for this submission.** The [Beyond the test submission](#beyond-the-test-submission) section describes production alternatives — that is a roadmap, not a to-do list for this repo.
+
+### Environment files (committed)
 
 | File | Purpose |
 |---|---|
@@ -92,9 +105,9 @@ Pending requests that finance does not approve or reject within **48 hours** are
 2. Every 15 seconds it runs `php artisan payments:expire-pending`.
 3. That command updates all `pending` rows **strictly older than 48 hours** (`created_at + 48h < now`) to `expired`, and sets `updated_at` to `created_at + 48h` for accurate display.
 
-Demo seed data includes one pending payment per employee **just under the configured window** (default 47h59m30s) so reviewers can see expirations within ~90 seconds of `docker compose up`, without waiting two days.
+Demo seed data includes one pending payment per employee **just under the configured window** (default 47h54m) so reviewers can see expirations within **~6 minutes** of `docker compose up`, without waiting two days.
 
-**Local testing:** set `PAYMENT_PENDING_EXPIRATION_HOURS=1` in `backend/.env`, then `docker compose restart backend scheduler`. Re-seed if needed (`docker compose exec backend php artisan db:seed --class=PaymentSeeder`). Pending demo rows will expire ~90 seconds after creation.
+**Local testing:** set `PAYMENT_PENDING_EXPIRATION_HOURS=1` in `backend/.env`, then `docker compose restart backend scheduler`. Re-seed if needed (`docker compose exec backend php artisan db:seed --class=PaymentSeeder`). Pending demo rows will expire ~6 minutes after creation.
 
 ### Why a scheduled command instead of a queued Job?
 I considered dispatching a delayed `ExpirePaymentJob` when each payment is created (`->delay(48 hours)`). We chose a **scheduled Artisan command** that scans the database instead:
@@ -141,11 +154,11 @@ New employees get `must_change_password: true` and must call `PUT /api/password`
 
 Add your public demo URL to [docs/demo.md](docs/demo.md) before submitting the ClickUp form.
 
-## Seed credentials
+## Seed credentials (demo only — for reviewers)
 
 Password for **all** seeded users: `123456`
 
-On the login screen, open **Test instructions** to see the full list of finance and employee accounts.
+On the login screen, open **Test instructions** to see the full list of finance and employee accounts (backed by `GET /api/test-users`). **This endpoint exists only to help you test** — it is documented as demo-only in Scramble and would be removed or locked down in production.
 
 | Email | Role | Country | Currency |
 |---|---|---|---|
@@ -272,12 +285,14 @@ docker compose up -d --build
 
 ## Beyond the test submission
 
-This repo is optimized for **Buzzvel reviewers**: one-command Docker, committed `.env`, demo passwords, public test-users endpoint. **Nothing in this section is implemented** — it is a concise map of what stays as-is in the test build versus what I would change for a real rollout.
+**Nothing below changes this repo.** It maps what stays **on purpose** for reviewers versus what I would build in a real rollout.
 
-| Area | This repo (test) | Production |
-|------|------------------|------------|
-| **Secrets & config** | `.env` committed; `APP_DEBUG=true` locally | Secrets manager or CI injection; `APP_DEBUG=false`; `APP_URL` + Sanctum/session cookies aligned with HTTPS (`SESSION_SECURE_COOKIE=true`) |
-| **Demo API surface** | `GET /api/test-users` + login “Test instructions” modal | Remove or protect the route; hide the modal in production builds |
+Several rows in the table are **not oversights** — committed secrets and `GET /api/test-users` are [intentional reviewer conveniences](#intentional-reviewer-conveniences-not-production-practice) that I chose to keep for this test.
+
+| Area | This repo (test) — **kept on purpose** | Production |
+|------|----------------------------------------|------------|
+| **Secrets & config** | `.env` committed so reviewers need zero secret setup | Secrets manager or CI injection; `.env` gitignored; `APP_DEBUG=false`; HTTPS session cookies |
+| **Demo API surface** | `GET /api/test-users` + login “Test instructions” modal — **helps graders log in fast** | Remove or protect the route; hide the modal |
 | **API docs** | Scramble public at `/docs/api` | `RestrictedDocsAccess` in production — gate with `viewApiDocs`, VPN, or basic auth |
 | **Passwords** | Six-digit demo policy (`PasswordPolicy`, `frontend/lib/password-policy.ts`) | Stronger rules (length, complexity, breach checks) in the same two files |
 | **Employee onboarding** | Initial password = first name | Random secret delivered out-of-band (email, IdP) |
