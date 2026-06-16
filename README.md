@@ -86,9 +86,9 @@ Pending requests that finance does not approve or reject within **48 hours** are
 2. Every minute it runs `php artisan payments:expire-pending`.
 3. That command updates all `pending` rows whose `created_at` is older than 48 hours to `expired`.
 
-Demo seed data includes one pending payment per employee **just under the configured window** (default 47h55m) so reviewers can see expirations within a few minutes of `docker compose up`, without waiting two days.
+Demo seed data includes one pending payment per employee **just under the configured window** (default 47h57m) so reviewers can see expirations within a few minutes of `docker compose up`, without waiting two days.
 
-**Local testing:** set `PAYMENT_PENDING_EXPIRATION_HOURS=1` in `backend/.env`, then `docker compose restart backend scheduler`. Re-seed if needed (`docker compose exec backend php artisan db:seed --class=PaymentSeeder`). Pending demo rows will expire ~5 minutes after creation.
+**Local testing:** set `PAYMENT_PENDING_EXPIRATION_HOURS=1` in `backend/.env`, then `docker compose restart backend scheduler`. Re-seed if needed (`docker compose exec backend php artisan db:seed --class=PaymentSeeder`). Pending demo rows will expire ~3 minutes after creation.
 
 ### Why a scheduled command instead of a queued Job?
 I considered dispatching a delayed `ExpirePaymentJob` when each payment is created (`->delay(48 hours)`). We chose a **scheduled Artisan command** that scans the database instead:
@@ -155,7 +155,7 @@ More users are seeded — see `backend/database/seeders/UserSeeder.php` or `GET 
 
 Payment creation fetches a live EUR → local rate from [ExchangeRate-API v6](https://www.exchangerate-api.com/). A key is already set in `backend/.env` (`EXCHANGE_RATE_API_KEY`).
 
-The amount shown in the form is a **reference estimate** only; the locked rate is fetched when you submit.
+The amount shown in the form is a **live preview** polled every 30 seconds from the same Redis cache used at submission; the locked rate is fetched when you submit.
 
 To use your own key, edit `backend/.env` and restart:
 

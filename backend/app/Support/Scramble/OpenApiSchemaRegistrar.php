@@ -7,6 +7,7 @@ use App\OpenApi\CountryProfileListResponse;
 use App\OpenApi\CountryProfileResponse;
 use App\OpenApi\EmployeeListResponse;
 use App\OpenApi\EmployeeResponse;
+use App\OpenApi\ExchangeRateResponse;
 use App\OpenApi\HealthResponse;
 use App\OpenApi\LoginRequest;
 use App\OpenApi\MessageResponse;
@@ -162,6 +163,13 @@ final class OpenApiSchemaRegistrar implements DocumentTransformer
                     'example' => OpenApiExamples::paymentApproved(),
                 ]],
             ],
+            'exchangeRate.show' => [
+                'responses' => [[
+                    'status' => 200,
+                    'class' => ExchangeRateResponse::class,
+                    'example' => OpenApiExamples::exchangeRatePreview(),
+                ]],
+            ],
         ];
 
         foreach ($document->paths as $path) {
@@ -247,6 +255,7 @@ final class OpenApiSchemaRegistrar implements DocumentTransformer
             class_basename(PaymentResponse::class) => self::paymentResponse(),
             class_basename(PaginatedPaymentResponse::class) => self::paginatedPaymentResponse(),
             class_basename(PaymentSummaryResponse::class) => self::paymentSummaryResponse(),
+            class_basename(ExchangeRateResponse::class) => self::exchangeRateResponse(),
             class_basename(TestUsersResponse::class) => self::testUsersResponse(),
             class_basename(EmployeeResponse::class) => self::employeeResponse(),
             class_basename(EmployeeListResponse::class) => self::employeeListResponse(),
@@ -414,6 +423,21 @@ final class OpenApiSchemaRegistrar implements DocumentTransformer
             ->setRequired(['total', 'pending', 'approved_eur', 'status_counts']);
 
         return self::schema($type, 'Finance dashboard summary cards', OpenApiExamples::paymentSummary());
+    }
+
+    private static function exchangeRateResponse(): Schema
+    {
+        $currency = self::str('BRL');
+        $currency->enum = SupportedCurrencies::codes();
+
+        $type = (new ObjectType)
+            ->addProperty('currency', $currency)
+            ->addProperty('exchange_rate', (new NumberType)->format('float')->example(6.21))
+            ->addProperty('rate_source', self::str('exchangerate-api.com'))
+            ->addProperty('rate_fetched_at', self::str('2026-06-15T08:00:00+00:00', 'When this rate snapshot was taken (Redis cache TTL applies)'))
+            ->setRequired(['currency', 'exchange_rate', 'rate_source', 'rate_fetched_at']);
+
+        return self::schema($type, 'Live EUR → local rate preview', OpenApiExamples::exchangeRatePreview());
     }
 
     private static function testUsersResponse(): Schema

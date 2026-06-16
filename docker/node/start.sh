@@ -4,11 +4,10 @@
 set -e
 
 if [ ! -f .next/BUILD_ID ]; then
-  echo "Building Next.js (first run or missing .next cache)..."
-  ./node_modules/.bin/next build --webpack
+  echo "Building Next.js for production (first run or missing .next cache)..."
+  ./node_modules/.bin/next build
 else
-  echo "Next.js build cache found — skipping build."
+  echo "Next.js production build found — skipping build."
 fi
-
-echo "Starting Next.js dev server..."
-exec ./node_modules/.bin/next dev --webpack
+echo "Starting Next.js production server..."
+exec ./node_modules/.bin/next start

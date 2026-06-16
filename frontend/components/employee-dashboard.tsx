@@ -16,7 +16,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
@@ -27,16 +26,19 @@ import { PaginationControls } from "@/components/pagination-controls"
 import { ResponsiveTableLayout } from "@/components/responsive-table-layout"
 import { useLanguage } from "@/components/language-provider"
 import {
-  REFERENCE_RATES,
   formatCurrency,
   formatDateTime,
+  formatExchangeRate,
 } from "@/lib/data"
-import { createPayment, fetchPayments } from "@/lib/api"
+import { createPayment, EXCHANGE_RATE_POLL_MS, fetchExchangeRate, fetchPayments } from "@/lib/api"
 import { ApiError } from "@/lib/http"
 import type { CurrencyCode, PaymentRequest, User } from "@/lib/types"
 import { ArrowRight, Inbox, Loader2, Plus } from "lucide-react"
 import { EmptyState } from "@/components/empty-state"
 import { InlineAlert } from "@/components/inline-alert"
+import { SortableTableHead } from "@/components/sortable-table-head"
+import { usePaymentSort } from "@/lib/sort-payments"
+import type { PaymentSortKey } from "@/lib/sort-payments"
 
 const PER_PAGE = 6
 
@@ -51,11 +53,12 @@ export function EmployeeDashboard({ user }: { user: User }) {
   const [selected, setSelected] = useState<PaymentRequest | null>(null)
   const [open, setOpen] = useState(false)
   const [page, setPage] = useState(1)
+  const { sort, toggleSort } = usePaymentSort()
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null)
 
-  const listKey = ["my-payments", user.id, page] as const
+  const listKey = ["my-payments", user.id, page, sort.sort, sort.dir] as const
 
   const {
     data: pageData,
@@ -63,8 +66,14 @@ export function EmployeeDashboard({ user }: { user: User }) {
     isValidating,
   } = useSWR(
     listKey,
-    ([, userId, p]: readonly [typeof listKey[0], number, number]) =>
-      fetchPayments({ user_id: userId, page: p, per_page: PER_PAGE }),
+    ([, userId, p, sortKey, dir]: readonly [typeof listKey[0], number, number, PaymentSortKey, typeof sort.dir]) =>
+      fetchPayments({
+        user_id: userId,
+        page: p,
+        per_page: PER_PAGE,
+        sort: sortKey,
+        dir,
+      }),
     { keepPreviousData: true },
   )
 
@@ -72,13 +81,34 @@ export function EmployeeDashboard({ user }: { user: User }) {
   const busy = isLoading || isValidating
   const isEmpty = !isLoading && history.length === 0
 
+  const {
+    data: ratePreview,
+    isLoading: rateLoading,
+    error: rateError,
+    isValidating: rateRefreshing,
+  } = useSWR(
+    ["exchange-rate", paymentCurrency],
+    ([, currency]) => fetchExchangeRate(currency),
+    {
+      refreshInterval: EXCHANGE_RATE_POLL_MS,
+      keepPreviousData: true,
+      revalidateOnFocus: true,
+    },
+  )
+
   const numericAmount = Number.parseFloat(amount) || 0
-  const rate = REFERENCE_RATES[paymentCurrency] ?? 1
-  const eurEstimate = rate > 0 ? numericAmount / rate : 0
+  const rate = ratePreview?.exchange_rate ?? null
+  const eurEstimate = rate && rate > 0 ? numericAmount / rate : 0
+  const ratePending = rateLoading && rate === null
 
   function openDetail(payment: PaymentRequest) {
     setSelected(payment)
     setOpen(true)
+  }
+
+  function handleSort(key: PaymentSortKey) {
+    toggleSort(key)
+    setPage(1)
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -181,13 +211,44 @@ export function EmployeeDashboard({ user }: { user: User }) {
                     {t("employee.estimate")}
                     <ArrowRight className="size-3.5" />
                     EUR
+                    {rateRefreshing && rate !== null && (
+                      <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+                    )}
                   </span>
                   <span className="font-semibold text-foreground">
-                    {formatCurrency(eurEstimate, "EUR")}
+                    {ratePending ? (
+                      <Loader2 className="size-4 animate-spin text-muted-foreground" aria-label={t("common.loading")} />
+                    ) : rate !== null ? (
+                      formatCurrency(eurEstimate, "EUR")
+                    ) : (
+                      "—"
+                    )}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t("employee.referenceRate", { rate, currency: paymentCurrency })}
+                {rate !== null && (
+                  <>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t("employee.referenceRate", {
+                        rate: formatExchangeRate(rate),
+                        currency: paymentCurrency,
+                      })}
+                    </p>
+                    {ratePreview?.rate_fetched_at && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {t("employee.rateAsOf", {
+                          time: formatDateTime(ratePreview.rate_fetched_at, locale),
+                        })}
+                      </p>
+                    )}
+                  </>
+                )}
+                {rateError && rate === null && (
+                  <p className="mt-1 text-xs text-destructive" role="alert">
+                    {t("employee.estimateUnavailable")}
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {t("employee.estimateHint")}
                 </p>
               </div>
 
@@ -241,7 +302,7 @@ export function EmployeeDashboard({ user }: { user: User }) {
               <>
                 <div className={busy ? "opacity-60 transition-opacity" : undefined}>
                 <ResponsiveTableLayout
-                  measureKey={`${history.length}-${locale}-${page}`}
+                  measureKey={`${history.length}-${locale}-${page}-${sort.sort}-${sort.dir}`}
                   cards={
                     <ul className="space-y-3 px-4">
                       {history.map((p) => (
@@ -287,11 +348,47 @@ export function EmployeeDashboard({ user }: { user: User }) {
                     <Table scrollable={false}>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>{t("table.date")}</TableHead>
-                          <TableHead>{t("table.currency")}</TableHead>
-                          <TableHead className="text-right">{t("table.localAmount")}</TableHead>
-                          <TableHead className="text-right">{t("table.eur")}</TableHead>
-                          <TableHead className="text-right">{t("table.status")}</TableHead>
+                          <SortableTableHead
+                            label={t("table.date")}
+                            sortKey="created_at"
+                            activeSort={sort.sort}
+                            direction={sort.dir}
+                            onSort={handleSort}
+                          />
+                          <SortableTableHead
+                            label={t("table.currency")}
+                            sortKey="currency"
+                            activeSort={sort.sort}
+                            direction={sort.dir}
+                            onSort={handleSort}
+                          />
+                          <SortableTableHead
+                            label={t("table.localAmount")}
+                            sortKey="local_amount"
+                            activeSort={sort.sort}
+                            direction={sort.dir}
+                            onSort={handleSort}
+                            className="text-right"
+                            align="right"
+                          />
+                          <SortableTableHead
+                            label={t("table.eur")}
+                            sortKey="eur_amount"
+                            activeSort={sort.sort}
+                            direction={sort.dir}
+                            onSort={handleSort}
+                            className="text-right"
+                            align="right"
+                          />
+                          <SortableTableHead
+                            label={t("table.status")}
+                            sortKey="status"
+                            activeSort={sort.sort}
+                            direction={sort.dir}
+                            onSort={handleSort}
+                            className="text-right"
+                            align="right"
+                          />
                         </TableRow>
                       </TableHeader>
                       <TableBody>

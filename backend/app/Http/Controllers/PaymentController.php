@@ -34,6 +34,8 @@ class PaymentController extends Controller
     #[QueryParameter('collaborator', example: 'Rafael Silva')]
     #[QueryParameter('page', type: 'integer', example: 1)]
     #[QueryParameter('per_page', type: 'integer', example: 8)]
+    #[QueryParameter('sort', example: 'created_at', description: 'Sort column: created_at, currency, local_amount, eur_amount, status, user_name, exchange_rate, country.')]
+    #[QueryParameter('dir', example: 'desc', description: 'Sort direction: asc or desc.')]
     #[Response(200, type: PaginatedPaymentResponse::class)]
     public function index(Request $request): JsonResponse
     {

@@ -97,6 +97,16 @@ final class OpenApiExamples
         return ['status' => 'approved'];
     }
 
+    public static function exchangeRatePreview(): array
+    {
+        return [
+            'currency' => 'BRL',
+            'exchange_rate' => 6.21,
+            'rate_source' => 'exchangerate-api.com',
+            'rate_fetched_at' => '2026-06-15T08:00:00+00:00',
+        ];
+    }
+
     public static function paymentPending(): array
     {
         return [

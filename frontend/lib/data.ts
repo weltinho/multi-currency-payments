@@ -21,23 +21,12 @@ export const CURRENCY_META: Record<
   SGD: { symbol: "S$", label: "Singapore Dollar", locale: "en-SG", flag: "SG" },
 }
 
-// EUR -> local currency reference rates (used for the conversion estimate)
-export const REFERENCE_RATES: Record<CurrencyCode, number> = {
-  EUR: 1,
-  BRL: 6.21,
-  USD: 1.08,
-  GBP: 0.84,
-  JPY: 162.45,
-  INR: 90.12,
-  KRW: 1450.5,
-  PLN: 4.32,
-  CAD: 1.47,
-  AUD: 1.65,
-  MXN: 20.15,
-  AED: 4.0,
-  SEK: 11.5,
-  ZAR: 20.5,
-  SGD: 1.45,
+export function formatExchangeRate(rate: number): string {
+  if (rate >= 100) {
+    return rate.toLocaleString(undefined, { maximumFractionDigits: 2 })
+  }
+
+  return rate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })
 }
 
 export const STATUS_META: Record<

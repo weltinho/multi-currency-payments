@@ -1,6 +1,10 @@
 // Tipos partilhados por toda a app. Os campos seguem snake_case de propósito,
 // para baterem 1:1 com o JSON devolvido pelo Laravel (sem precisar de mapear).
 
+import type { PaymentSortKey, SortDirection } from "./sort-payments"
+
+export type { PaymentSortKey, SortDirection } from "./sort-payments"
+
 // Define que dashboard o utilizador vê depois do login.
 export type Role = "finance" | "employee"
 
@@ -76,6 +80,8 @@ export interface PaymentQuery {
   status?: PaymentStatus | "all"
   collaborator?: string
   user_id?: number
+  sort?: PaymentSortKey
+  dir?: SortDirection
 }
 
 /** Aggregate figures returned by the summary endpoint (independent of pagination). */
@@ -84,6 +90,14 @@ export interface PaymentSummary {
   pending: number
   approved_eur: number
   status_counts: Record<PaymentStatus | "all", number>
+}
+
+/** Live EUR → local rate preview (same cache as payment creation). */
+export interface ExchangeRatePreview {
+  currency: CurrencyCode
+  exchange_rate: number
+  rate_source: string
+  rate_fetched_at: string
 }
 
 export interface CreatePaymentPayload {

@@ -1,6 +1,7 @@
 import { apiFetch } from "./http"
 import type {
   CreatePaymentPayload,
+  ExchangeRatePreview,
   Paginated,
   PaymentQuery,
   PaymentRequest,
@@ -18,6 +19,8 @@ function toQueryString(query: PaymentQuery): string {
   if (query.status && query.status !== "all") params.set("status", query.status)
   if (query.collaborator) params.set("collaborator", query.collaborator)
   if (query.user_id) params.set("user_id", String(query.user_id))
+  if (query.sort) params.set("sort", query.sort)
+  if (query.dir) params.set("dir", query.dir)
   const qs = params.toString()
   return qs ? `?${qs}` : ""
 }
@@ -66,4 +69,12 @@ export function registerEmployee(payload: RegisterEmployeePayload): Promise<User
     method: "POST",
     body: payload,
   })
+}
+
+/** Poll interval for live rate previews — matches backend Redis cache TTL (30s). */
+export const EXCHANGE_RATE_POLL_MS = 30_000
+
+/** GET /api/exchange-rates/{currency} — live estimate for the submission form. */
+export function fetchExchangeRate(currency: string): Promise<ExchangeRatePreview> {
+  return apiFetch<ExchangeRatePreview>(`/exchange-rates/${encodeURIComponent(currency)}`)
 }

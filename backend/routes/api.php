@@ -19,6 +19,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TestUserController;
@@ -45,6 +46,7 @@ Route::middleware(['auth:sanctum', 'password.changed'])->group(function () {
 
     Route::get('/payments/summary', [PaymentController::class, 'summary']);
     Route::get('/payments', [PaymentController::class, 'index']);
+    Route::get('/exchange-rates/{currency}', [ExchangeRateController::class, 'show']);
     Route::post('/payments', [PaymentController::class, 'store']);
     Route::get('/payments/{id}', [PaymentController::class, 'show']);
     Route::patch('/payments/{id}', [PaymentController::class, 'decide']);

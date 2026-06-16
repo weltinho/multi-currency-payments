@@ -384,6 +384,33 @@ GET /api/payments/summary
 
 ---
 
+### Live rate preview (employee form)
+
+```
+GET /api/exchange-rates/{currency}
+```
+
+**Authorization:** Authenticated employee or finance (`auth:sanctum` + password changed).
+
+Returns the same EUR → local rate snapshot used at payment creation (Redis cache, default TTL 30s). The frontend polls this every 30 seconds while the employee dashboard is open.
+
+**Response `200`:**
+
+```json
+{
+  "currency": "BRL",
+  "exchange_rate": 6.21,
+  "rate_source": "exchangerate-api.com",
+  "rate_fetched_at": "2026-06-15T08:00:00+00:00"
+}
+```
+
+**Response `422`:** Invalid currency code.
+
+**Response `503`:** Exchange rate provider unavailable.
+
+---
+
 ### Create payment request
 
 ```

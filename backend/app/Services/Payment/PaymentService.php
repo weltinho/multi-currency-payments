@@ -39,6 +39,7 @@ class PaymentService implements PaymentServiceContract
         ];
 
         $rows = $this->payments->filter($filters);
+        $rows = $this->sortRows($rows, $query['sort'] ?? null, $query['dir'] ?? null);
         $total = count($rows);
         $lastPage = max(1, (int) ceil($total / $perPage));
         $page = min($page, $lastPage);
@@ -164,6 +165,42 @@ class PaymentService implements PaymentServiceContract
         $cutoff = now()->subHours($hours);
 
         return $this->payments->expirePendingOlderThan($cutoff);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function sortRows(array $rows, ?string $sortBy, ?string $direction): array
+    {
+        $allowed = [
+            'created_at',
+            'currency',
+            'local_amount',
+            'eur_amount',
+            'status',
+            'user_name',
+            'exchange_rate',
+            'country',
+        ];
+
+        $sortBy = in_array($sortBy, $allowed, true) ? $sortBy : 'created_at';
+        $direction = strtolower((string) $direction) === 'asc' ? 'asc' : 'desc';
+
+        usort($rows, function (array $a, array $b) use ($sortBy, $direction): int {
+            $left = $a[$sortBy] ?? null;
+            $right = $b[$sortBy] ?? null;
+
+            $cmp = match ($sortBy) {
+                'local_amount', 'eur_amount', 'exchange_rate' => ($left <=> $right),
+                'created_at' => strcmp((string) $left, (string) $right),
+                default => strcasecmp((string) $left, (string) $right),
+            };
+
+            return $direction === 'asc' ? $cmp : -$cmp;
+        });
+
+        return $rows;
     }
 
     private function generateReference(): string

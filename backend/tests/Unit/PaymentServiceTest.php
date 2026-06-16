@@ -103,6 +103,30 @@ class PaymentServiceTest extends TestCase
         $this->assertSame([], $result['data']);
     }
 
+    public function test_pagination_sorts_by_eur_amount_descending(): void
+    {
+        $rows = [
+            ['id' => 1, 'eur_amount' => 100.0, 'created_at' => '2026-06-01T10:00:00+00:00'],
+            ['id' => 2, 'eur_amount' => 500.0, 'created_at' => '2026-06-02T10:00:00+00:00'],
+            ['id' => 3, 'eur_amount' => 250.0, 'created_at' => '2026-06-03T10:00:00+00:00'],
+        ];
+
+        $repository = Mockery::mock(PaymentRepositoryContract::class);
+        $repository->shouldReceive('filter')->once()->andReturn($rows);
+
+        $service = new PaymentService($repository, $this->exchangeRates());
+        $finance = $this->makeUser(UserRole::Finance, 1);
+
+        $result = $service->paginate($finance, [
+            'page' => 1,
+            'per_page' => 8,
+            'sort' => 'eur_amount',
+            'dir' => 'desc',
+        ]);
+
+        $this->assertSame([2, 3, 1], array_column($result['data'], 'id'));
+    }
+
     public function test_employee_can_create_payment(): void
     {
         $employee = $this->makeUser(UserRole::Employee, 5);

@@ -21,8 +21,8 @@ export function LoginScreen({ onLogin }: { onLogin: (user: User, password: strin
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    void ensureCsrfCookie()
-  }, [])
+    void ensureCsrfCookie() // Ensure the CSRF cookie is set before the login form is submitted.
+  }, []) 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

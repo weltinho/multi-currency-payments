@@ -35,6 +35,9 @@ import { ApiError } from "@/lib/http"
 import { RegisterEmployeeDialog } from "@/components/register-employee-dialog"
 import { EmptyState } from "@/components/empty-state"
 import { InlineAlert } from "@/components/inline-alert"
+import { SortableTableHead } from "@/components/sortable-table-head"
+import { usePaymentSort } from "@/lib/sort-payments"
+import type { PaymentSortKey } from "@/lib/sort-payments"
 import type { PaymentQuery, PaymentRequest, PaymentStatus, User } from "@/lib/types"
 import type { TranslationKey } from "@/lib/i18n"
 import { Check, Inbox, Loader2, Search, X } from "lucide-react"
@@ -92,6 +95,7 @@ export function FinanceDashboard() {
   const [filter, setFilter] = useState<FilterValue>("all")
   const [collaborator, setCollaborator] = useState("")
   const [page, setPage] = useState(1)
+  const { sort, toggleSort } = usePaymentSort()
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selected, setSelected] = useState<PaymentRequest | null>(null)
   const [open, setOpen] = useState(false)
@@ -111,6 +115,8 @@ export function FinanceDashboard() {
     per_page: PER_PAGE,
     status: filter,
     collaborator: collaborator.trim(),
+    sort: sort.sort,
+    dir: sort.dir,
   }
   const {
     data: pageData,
@@ -175,6 +181,11 @@ export function FinanceDashboard() {
   // reinicio a paginação para o topo da nova lista.
   function changeCollaborator(value: string) {
     setCollaborator(value)
+    setPage(1)
+  }
+
+  function handleSort(key: PaymentSortKey) {
+    toggleSort(key)
     setPage(1)
   }
 
@@ -386,7 +397,7 @@ export function FinanceDashboard() {
             <>
               <div className={cn(busy && "opacity-60 transition-opacity")}>
                 <ResponsiveTableLayout
-                  measureKey={`${rows.length}-${locale}-${page}-${filter}`}
+                  measureKey={`${rows.length}-${locale}-${page}-${filter}-${sort.sort}-${sort.dir}`}
                   cards={
                     <ul className="space-y-3 px-4">
                       {rows.map((p) => (
@@ -482,13 +493,61 @@ export function FinanceDashboard() {
                     <Table scrollable={false}>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>{t("table.date")}</TableHead>
-                          <TableHead>{t("table.user")}</TableHead>
-                          <TableHead>{t("table.countryCurrency")}</TableHead>
-                          <TableHead className="text-right">{t("table.localAmount")}</TableHead>
-                          <TableHead className="text-right">{t("table.rate")}</TableHead>
-                          <TableHead className="text-right">{t("table.eurTotal")}</TableHead>
-                          <TableHead>{t("table.status")}</TableHead>
+                          <SortableTableHead
+                            label={t("table.date")}
+                            sortKey="created_at"
+                            activeSort={sort.sort}
+                            direction={sort.dir}
+                            onSort={handleSort}
+                          />
+                          <SortableTableHead
+                            label={t("table.user")}
+                            sortKey="user_name"
+                            activeSort={sort.sort}
+                            direction={sort.dir}
+                            onSort={handleSort}
+                          />
+                          <SortableTableHead
+                            label={t("table.countryCurrency")}
+                            sortKey="country"
+                            activeSort={sort.sort}
+                            direction={sort.dir}
+                            onSort={handleSort}
+                          />
+                          <SortableTableHead
+                            label={t("table.localAmount")}
+                            sortKey="local_amount"
+                            activeSort={sort.sort}
+                            direction={sort.dir}
+                            onSort={handleSort}
+                            className="text-right"
+                            align="right"
+                          />
+                          <SortableTableHead
+                            label={t("table.rate")}
+                            sortKey="exchange_rate"
+                            activeSort={sort.sort}
+                            direction={sort.dir}
+                            onSort={handleSort}
+                            className="text-right"
+                            align="right"
+                          />
+                          <SortableTableHead
+                            label={t("table.eurTotal")}
+                            sortKey="eur_amount"
+                            activeSort={sort.sort}
+                            direction={sort.dir}
+                            onSort={handleSort}
+                            className="text-right"
+                            align="right"
+                          />
+                          <SortableTableHead
+                            label={t("table.status")}
+                            sortKey="status"
+                            activeSort={sort.sort}
+                            direction={sort.dir}
+                            onSort={handleSort}
+                          />
                           <TableHead className="text-right">{t("table.actions")}</TableHead>
                         </TableRow>
                       </TableHeader>
