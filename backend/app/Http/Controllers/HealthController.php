@@ -8,7 +8,7 @@ use Dedoc\Scramble\Attributes\Response;
 use Illuminate\Http\JsonResponse;
 
 /** Liveness probe for Docker healthchecks and reviewers. */
-#[Group('Public', description: 'Unauthenticated endpoints — health and login.', weight: 10)]
+#[Group('Public', description: 'Unauthenticated endpoints — health and login.', weight: 5)]
 class HealthController extends Controller
 {
     /**

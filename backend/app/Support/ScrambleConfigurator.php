@@ -20,12 +20,21 @@ use Dedoc\Scramble\Support\Generator\SecurityRequirement;
  */
 final class ScrambleConfigurator
 {
+    /** Site root from APP_URL (config app.url) — single knob for docs Try It and CSRF paths. */
+    public static function gatewayUrl(): string
+    {
+        return rtrim((string) config('app.url'), '/');
+    }
+
     public static function register(): void
     {
         Scramble::configure()
             ->withDocumentTransformers(function (DocumentTransformers $transformers) {
                 $transformers->prepend(function (OpenApi $openApi, OpenApiContext $context) {
                     self::transform($openApi, $context);
+                });
+                $transformers->append(function (OpenApi $openApi, OpenApiContext $context) {
+                    self::insertCsrfPathAfterHealth($openApi);
                 });
                 $transformers->append(OpenApiSchemaRegistrar::class);
             });
@@ -49,12 +58,12 @@ final class ScrambleConfigurator
                 ),
         );
 
-        self::prependCsrfPath($openApi);
+        // CSRF path is inserted after health once all routes are registered (see append transformer).
     }
 
     private static function overviewMarkdown(): string
     {
-        $appUrl = rtrim((string) config('app.url', 'http://localhost:8080'), '/');
+        $appUrl = self::gatewayUrl();
 
         return <<<MD
         Multi-currency reimbursement API for Buzzvel's technical assessment. Finance audits company-wide payment requests; employees submit expenses in their profile currency (or another supported ISO code). Pending requests **expire after 48 hours** when finance does not act.
@@ -62,6 +71,8 @@ final class ScrambleConfigurator
         ## Try It — step by step (no Postman)
 
         All steps use **Send API Request** on this docs page (same browser tab — cookies must be shared).
+
+        Use the **Language** selector (top-right) to choose the locale for translated API errors — it is stored separately from the UI app (`buzzvell.api.language` vs `buzzvell.language` in the SPA).
 
         1. **Public → Get CSRF cookie** — no body. Click Send → expect **204 No Content** (empty body is normal). **Then proceed** to step 2 — the `XSRF-TOKEN` cookie is now set.
         2. **Public → auth.login** — body `{"email":"finance@buzzvel.com","password":"123456"}` (or any seeded employee). Send → **200**. Session cookie is stored automatically.
@@ -73,7 +84,7 @@ final class ScrambleConfigurator
 
         | Group | Who | Capabilities |
         |-------|-----|--------------|
-        | **Public** | Everyone | CSRF cookie, health, login, demo test-users |
+        | **Public** | Everyone | health, CSRF cookie, login, demo test-users |
         | **Auth** | Logged-in users | Session user, logout, password change |
         | **Finance** | `finance@buzzvel.com` | Registration (`POST /employees`), list/approve/reject payments |
         | **Employee** | e.g. `rafael@buzzvel.com` | Create and track own payment requests |
@@ -81,9 +92,15 @@ final class ScrambleConfigurator
         MD;
     }
 
-    private static function prependCsrfPath(OpenApi $openApi): void
+    private static function insertCsrfPathAfterHealth(OpenApi $openApi): void
     {
-        $gateway = rtrim((string) config('app.url', 'http://localhost:8080'), '/');
+        foreach ($openApi->paths as $existingPath) {
+            if (($existingPath->path ?? '') === 'sanctum/csrf-cookie') {
+                return;
+            }
+        }
+
+        $gateway = self::gatewayUrl();
 
         $operation = Operation::make('get')
             ->setOperationId('public.csrfCookie')
@@ -96,11 +113,44 @@ final class ScrambleConfigurator
                 'No content — success. The `XSRF-TOKEN` cookie was set; **proceed to Public → auth.login** (or any mutating endpoint).'
             ));
 
-        $path = Path::make('sanctum/csrf-cookie')
+        $csrfPath = Path::make('sanctum/csrf-cookie')
             ->servers([Server::make($gateway)])
             ->addOperation($operation);
 
-        array_unshift($openApi->paths, $path);
+        $ordered = [];
+        $inserted = false;
+
+        foreach ($openApi->paths as $existingPath) {
+            $ordered[] = $existingPath;
+
+            if (! $inserted && self::isHealthPath($existingPath)) {
+                $ordered[] = $csrfPath;
+                $inserted = true;
+            }
+        }
+
+        if (! $inserted) {
+            array_unshift($ordered, $csrfPath);
+        }
+
+        $openApi->paths = $ordered;
+    }
+
+    private static function isHealthPath(Path $path): bool
+    {
+        $name = $path->path ?? '';
+
+        if (in_array($name, ['health', '/health'], true) || str_ends_with($name, '/health')) {
+            return true;
+        }
+
+        foreach ($path->operations as $operation) {
+            if (($operation->operationId ?? '') === 'health') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function csrfCookieMarkdown(string $gateway): string

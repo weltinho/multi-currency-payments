@@ -16,4 +16,6 @@ Set `API_URL=http://localhost:8000` in `.env.local` if the Laravel API runs on a
 
 Dependencies are installed **during `docker compose build`** — no manual `pnpm install` needed.
 
-The frontend runs inside the `frontend` service. Access the app through Nginx at `http://localhost:8080`.
+**Local (Docker):** `http://localhost:8080` when using Docker Compose with `APP_PORT=8080`.
+
+**Live:** https://welton-buzzvel.duckdns.org (same-origin `/api` and `/sanctum` via host Nginx).

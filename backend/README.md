@@ -41,6 +41,6 @@ docker compose exec backend php artisan test
 
 ## API documentation
 
-Interactive docs (Scramble): `http://localhost:8080/docs/api`
+Interactive docs (Scramble): `http://localhost:8080/docs/api` (live: https://welton-buzzvel.duckdns.org/docs/api)
 
 Static reference: `../docs/api.md`

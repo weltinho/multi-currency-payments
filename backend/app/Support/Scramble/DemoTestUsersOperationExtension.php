@@ -21,6 +21,8 @@ final class DemoTestUsersOperationExtension extends OperationExtension
             ->description(
                 '**Demo only — not for production.** '
                 . 'Returns finance and employee emails for evaluator login (same data as the login-screen test-users modal). '
+                . '**Password for all seeded accounts: `123456`** — use any listed email with **Public → auth.login**. '
+                . 'Finance-created employees are the exception: initial password is their first name until they change it via **Auth → password**. '
                 . 'Disable or protect this route before deploying to a real environment.'
             );
     }

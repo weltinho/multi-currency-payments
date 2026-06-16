@@ -2,8 +2,6 @@
 
 use Dedoc\Scramble\Http\Middleware\RestrictedDocsAccess;
 
-$appUrl = rtrim((string) env('APP_URL', 'http://localhost:8080'), '/');
-
 return [
     'api_path' => 'api',
 
@@ -27,9 +25,11 @@ return [
         'layout' => 'responsive',
     ],
 
-    'servers' => [
-        'Local' => "{$appUrl}/api",
-    ],
+    /*
+     * null = Scramble derives the API server from Laravel's url('api'), which uses APP_URL.
+     * CSRF / overview links use the same value via ScrambleConfigurator::gatewayUrl().
+     */
+    'servers' => null,
 
     'enum_cases_description_strategy' => 'description',
 
@@ -44,5 +44,6 @@ return [
 
     'extensions' => [
         App\Support\Scramble\DemoTestUsersOperationExtension::class,
+        App\Support\Scramble\AddAppLanguageHeaderExtension::class,
     ],
 ];

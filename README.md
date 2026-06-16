@@ -4,6 +4,10 @@ Buzzvel 2026 Dev Team Test — corporate multi-currency payment request system.
 
 Employees submit payment requests in their local currency. Exchange rates are fetched at creation time and stored immutably. The finance team reviews and approves or rejects requests.
 
+**For reviewers:** [backend/REVIEWER_NOTES.md](backend/REVIEWER_NOTES.md) — brief checklist, architecture decisions, and code pointers. API reference: [docs/api.md](docs/api.md).
+
+**Live deployment:** https://welton-buzzvel.duckdns.org (same stack as below, configured on the host).
+
 ## Architecture
 
 ```
@@ -31,9 +35,19 @@ This is a **test submission**, so `.env` and `backend/.env` are **committed to t
 | File | Purpose |
 |---|---|
 | `.env` | Docker Compose (port, MySQL credentials) |
-| `backend/.env` | Laravel app config, including `EXCHANGE_RATE_API_KEY` |
+| `backend/.env` | Laravel app config (`APP_URL`, Sanctum, exchange-rate API key) |
 
-After clone, you should not need to edit anything unless you want to change the port or use your own exchange-rate API key.
+`APP_URL` and Sanctum domains are set for **http://localhost:8080** (Docker gateway). Override on the host for production (e.g. `https://welton-buzzvel.duckdns.org`) — Scramble docs and Try It URLs follow `APP_URL` automatically after `docker compose restart backend`.
+
+After clone, you should not need to edit anything unless you want your own exchange-rate API key.
+
+## URLs (local Docker)
+
+| URL | Purpose |
+|---|---|
+| http://localhost:8080 | UI |
+| http://localhost:8080/docs/api | Interactive API docs (Scramble) |
+| http://localhost:8080/api/health | Health check |
 
 ## Quick start
 
@@ -43,21 +57,13 @@ cd multi-currency-payments
 docker compose up -d --build
 ```
 
-**First boot can take a few minutes** (Composer install, Laravel migrate/seed, Next.js build). Wait until **all** containers are healthy:
+**First boot can take a few minutes** (Composer install, Laravel migrate/seed, Next.js build). Wait until **all** containers are running and healthy:
 
 ```bash
 docker compose ps
 ```
 
 You should see `backend`, `frontend`, and `database` as **healthy** before opening the UI. The stack is wired so the frontend does not start until the API has finished bootstrapping and demo data is seeded (`php artisan app:ready`).
-
-Then open:
-
-| URL | Purpose |
-|---|---|
-| http://localhost:8080 | UI |
-| http://localhost:8080/docs/api | Interactive API docs (Scramble) |
-| http://localhost:8080/api/health | Health check |
 
 ### What happens automatically on first start
 
@@ -129,7 +135,7 @@ New employees get `must_change_password: true` and must call `PUT /api/password`
 
 **Recommended demo flow for reviewers:** finance registers an employee → employee logs in → password change → submit payment → finance approves.
 
-More detail: [backend/REVIEWER_NOTES.md](backend/REVIEWER_NOTES.md) and [docs/api.md](docs/api.md#registration-buzzvel-brief--corporate-onboarding).
+
 
 ## Demo video
 
@@ -205,7 +211,7 @@ Reviewer-focused backend notes: [backend/REVIEWER_NOTES.md](backend/REVIEWER_NOT
 
 ## API documentation
 
-- **Interactive (Scramble):** http://localhost:8080/docs/api
+- **Interactive (Scramble):** http://localhost:8080/docs/api (live: https://welton-buzzvel.duckdns.org/docs/api)
 - **Static reference:** [docs/api.md](docs/api.md)
 - **Architecture:** [docs/architecture.md](docs/architecture.md)
 - **Demo video:** [docs/demo.md](docs/demo.md)
@@ -249,7 +255,7 @@ docker compose up -d --build
 
 **Payment submit fails — exchange rate unavailable**
 
-Check `EXCHANGE_RATE_API_KEY` in `backend/.env` and restart `backend`. With `APP_DEBUG=true`, the API returns a more specific error message.
+Check `EXCHANGE_RATE_API_KEY` in `backend/.env` and restart `backend`. With `APP_DEBUG=true` (local only), the API returns a more specific error message.
 
 **Completely fresh database**
 
@@ -260,7 +266,7 @@ docker compose up -d --build
 
 ## Development notes
 
-- The frontend talks to the API via same-origin paths (`/api`, `/sanctum`) through Nginx — use **http://localhost:8080**, not port 3000 directly.
+- The frontend talks to the API via same-origin paths (`/api`, `/sanctum`) through Nginx — not port 3000 directly.
 - `backend/vendor/` is gitignored and installed inside Docker on first boot.
 - For standalone frontend dev without Nginx, see [frontend/README.md](frontend/README.md).
 

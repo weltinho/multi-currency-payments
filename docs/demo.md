@@ -1,14 +1,15 @@
-# Demo
+# Demo video
 
-## Local URL
+Add your public demo recording URL here before submitting the Buzzvel ClickUp form.
 
-- **Application:** http://localhost:8080
-- **API docs (Scramble):** http://localhost:8080/docs/api
+## Application URLs
 
-## Video
+- **Local (Docker):** http://localhost:8080
+- **Live:** https://welton-buzzvel.duckdns.org
+- **API docs (Scramble):** `/docs/api` on either host
 
-_Add your demo video link here before submission._
+## Demo video
 
-## Test accounts
+<!-- Replace with your public link (YouTube, Loom, Google Drive, etc.) -->
 
-See the [README](../README.md#seed-credentials) for login credentials.
+**URL:** _pending_

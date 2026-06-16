@@ -1,6 +1,7 @@
 # API Reference
 
-> **Interactive docs:** http://localhost:8080/docs/api (Scramble — testable from the browser)
+> **Interactive docs:** http://localhost:8080/docs/api (Scramble — testable from the browser)  
+> **Live:** https://welton-buzzvel.duckdns.org/docs/api
 
 This document provides a static reference. The Scramble UI is the primary testable documentation for reviewers.
 
@@ -173,6 +174,8 @@ GET /api/test-users
 ```
 
 **Authorization:** None (public, for evaluators only).
+
+**Seeded login password:** `123456` for every account returned below (use with `POST /api/login`).
 
 **Response `200`:**
 

@@ -17,7 +17,7 @@ Short guide mapping the Buzzvel brief to this repo. Start here, then follow file
 | Unit tests (critical paths) | `tests/Unit/*` + feature tests; run `php artisan test` |
 | Seeders (≥5 employees, multiple countries/currencies) | `UserSeeder`: 20 employees + 3 finance across many ISO profiles |
 
-The **Next.js frontend** at `:8080` consumes this API (same-origin via Nginx). The brief asks for a Laravel application; the API is Laravel 12 — the UI is a separate container for a polished SPA experience.
+The **Next.js frontend** at `http://localhost:8080` (live: https://welton-buzzvel.duckdns.org) consumes this API (same-origin via Nginx). The brief asks for a Laravel application; the API is Laravel 12 — the UI is a separate container for a polished SPA experience.
 
 ## Architecture
 
@@ -51,6 +51,7 @@ The **Next.js frontend** at `:8080` consumes this API (same-origin via Nginx). T
 ## Localization
 
 - Client sends `X-App-Language` (mirrors UI locale). `SetLocaleFromRequest` middleware sets the app locale before validation and translated API messages (`lang/*/messages.php`).
+- **Scramble `/docs/api`:** separate language selector (top-right) stores `buzzvell.api.language` so Try It does not inherit the SPA tab’s `buzzvell.language`.
 
 ## Demo data
 
@@ -66,7 +67,7 @@ The **Next.js frontend** at `:8080` consumes this API (same-origin via Nginx). T
 - Expiration does **not** set `reviewed_at` — finance never acted on these.
 - **Why command, not Job?** See root [README.md](../README.md#payment-expiration-48h) — batch sweeper fits the global 48h rule and keeps Docker simple (no dedicated queue worker).
 
-## Tests
+## Tests I've used while developing
 
 ```bash
 docker compose exec backend php artisan test
@@ -80,6 +81,6 @@ Feature tests cover auth, employee registration, payment create/approve, expirat
 
 ## Documentation
 
-- **Interactive:** http://localhost:8080/docs/api (Scramble — Try It, example responses)
+- **Interactive:** http://localhost:8080/docs/api (live: https://welton-buzzvel.duckdns.org/docs/api) — Scramble Try It, example responses
 - **Static:** [docs/api.md](../docs/api.md)
 - **Demo video:** [docs/demo.md](../docs/demo.md) (add link before submission)

@@ -453,7 +453,7 @@ final class OpenApiSchemaRegistrar implements DocumentTransformer
             ->addProperty('employees', $employees)
             ->setRequired(['finance', 'employees']);
 
-        return self::schema($type, 'Demo only — grouped evaluator accounts', OpenApiExamples::testUsers());
+        return self::schema($type, 'Demo only — grouped evaluator accounts. Seeded login password: 123456 for every email listed.', OpenApiExamples::testUsers());
     }
 
     private static function accountType(string $name, string $email, string $country, string $currency): ObjectType
